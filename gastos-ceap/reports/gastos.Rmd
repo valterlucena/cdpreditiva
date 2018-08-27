@@ -38,4 +38,20 @@ gastos$valorGlosa <- as.numeric(sub(",",
 5. Quais estados cujos parlamentares gastam mais com passagens aéreas? (7,5 pts)
 6. Escolha três partidos e responda: Quais são os tipos de despesa mais utilizados no uso da CEAP pelos deputados desses partidos? Mesma pergunta considerando valores em R$. (7,5 pts)
 
+## Quais são os deputados que gastaram mais dinheiro da CEAP? Quais são os mais econômicos? (7,5 pts)
+
+
+
+```{r}
+gastos %>% 
+  na.omit() %>% 
+  group_by(idCadastro, nomeParlamentar) %>% 
+  summarise(total = sum(valorLíquido)) %>% 
+  arrange(-total) %>% 
+  ggplot(aes(x = reorder(nomeParlamentar, total),
+             y = total)) +
+  geom_col() +
+  coord_flip()
+```
+
 
