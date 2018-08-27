@@ -1,0 +1,30 @@
+---
+title: "Análise dos Gastos de Deputados"
+author: "Valter Lucena"
+date: "27 de agosto de 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE}
+library(tidyverse)
+library(here)
+```
+
+```{r}
+gastos <- read_csv(here("data/dadosCEAP.csv"))
+
+# troca virgula por pontos
+
+gastos$valorGlosa <- as.numeric(sub(",",
+                                    ".", 
+                                    gastos$valorGlosa, 
+                                    fixed = TRUE))
+
+```
+
+
+
