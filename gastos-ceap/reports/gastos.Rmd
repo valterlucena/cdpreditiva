@@ -27,8 +27,6 @@ library(here)
 gastos <- read_csv(here("data/dadosCEAP.csv"),
                    progress = FALSE)
 
-limite_mensal <- read_csv(here("data/limiteMensalCEAP.csv"))
-
 # troca virgula por pontos
 
 gastos$valorGlosa <- as.numeric(sub(",",
@@ -105,5 +103,22 @@ gastos %>%
              y = total,
              fill = total)) +
   geom_col(position = position_identity())
+```
+
+## Quais os partidos cujos parlamentares mais usam CEAP no estado da Paraíba? Quais são os que menos usam? Mesmas perguntas considerando valores em R$.
+
+```{r}
+partidos <- gastos %>% 
+  filter(sgUF %in% c("PB")) %>% 
+  group_by(sgPartido) %>%
+  summarise(total = sum(valorLíquido), 
+            quantidade = n())
+
+partidos %>% 
+  ggplot(aes(x = reorder(sgPartido, quantidade),
+             y = quantidade,
+             fill = quantidade)) +
+  geom_col()
+
 ```
 
