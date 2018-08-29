@@ -2,7 +2,14 @@
 title: "Análise dos Gastos de Deputados"
 author: "Valter Lucena"
 date: "27 de agosto de 2018"
-output: html_document
+output:
+  html_notebook:
+    toc: yes
+    toc_float: yes
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_float: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -17,7 +24,10 @@ library(here)
 # Dados
 
 ```{r}
-gastos <- read_csv(here("data/dadosCEAP.csv"))
+gastos <- read_csv(here("data/dadosCEAP.csv"),
+                   progress = FALSE)
+
+limite_mensal <- read_csv(here("data/limiteMensalCEAP.csv"))
 
 # troca virgula por pontos
 
@@ -41,17 +51,59 @@ gastos$valorGlosa <- as.numeric(sub(",",
 ## Quais são os deputados que gastaram mais dinheiro da CEAP? Quais são os mais econômicos? (7,5 pts)
 
 
-
 ```{r}
+
+# mais gastam
+
 gastos %>% 
-  na.omit() %>% 
-  group_by(idCadastro, nomeParlamentar) %>% 
+  group_by(nomeParlamentar) %>% 
   summarise(total = sum(valorLíquido)) %>% 
+  filter(total >= 0) %>% 
   arrange(-total) %>% 
+  slice(1:10) %>%
+  na.omit() %>% 
   ggplot(aes(x = reorder(nomeParlamentar, total),
-             y = total)) +
-  geom_col() +
+             y = total,
+             colour = total)) +
+  geom_point(size = 2) +
+  geom_segment(aes(x = reorder(nomeParlamentar, total),
+                   xend = reorder(nomeParlamentar, total),
+                   y = 0,
+                   yend = total)) +
   coord_flip()
 ```
 
+ 
+```{r}
+# menos gastam
+gastos %>% 
+  group_by(nomeParlamentar) %>% 
+  summarise(total = sum(valorLíquido)) %>% 
+  filter(total >= 0) %>% 
+  arrange(total) %>% 
+  slice(1:10) %>%
+  na.omit() %>% 
+  ggplot(aes(x = reorder(nomeParlamentar, -total),
+             y = total,
+             colour = total)) +
+  geom_point(size = 2) +
+  geom_segment(aes(x = reorder(nomeParlamentar, -total),
+                   xend = reorder(nomeParlamentar, -total),
+                   y = 0,
+                   yend = total)) +
+  coord_flip()
+```
+
+## Quais os estados cujos deputados gastam mais no exterior? Quais os estados cujos deputados gastam menos no exterior?
+
+```{r}
+gastos %>%
+  filter(tipoDocumento == 2) %>% 
+  group_by(sgUF) %>%
+  summarise(total = sum(valorLíquido)) %>% 
+  ggplot(aes(x = reorder(sgUF, total),
+             y = total,
+             fill = total)) +
+  geom_col(position = position_identity())
+```
 
