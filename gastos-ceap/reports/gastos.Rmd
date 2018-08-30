@@ -2,14 +2,7 @@
 title: "Análise dos Gastos de Deputados"
 author: "Valter Lucena"
 date: "27 de agosto de 2018"
-output:
-  html_notebook:
-    toc: yes
-    toc_float: yes
-  html_document:
-    df_print: paged
-    toc: yes
-    toc_float: yes
+output: html_document
 ---
 
 ```{r setup, include=FALSE}
@@ -27,12 +20,14 @@ library(here)
 gastos <- read_csv(here("data/dadosCEAP.csv"),
                    progress = FALSE)
 
-# troca virgula por pontos
-
-gastos$valorGlosa <- as.numeric(sub(",",
-                                    ".", 
-                                    gastos$valorGlosa, 
-                                    fixed = TRUE))
+gastos <- gastos %>% 
+  mutate(regiao = case_when(
+    sgUF %in% c("AC", "AP", "AM", "PA", "RO", "RR", "TO") ~ "Norte",
+    sgUF %in% c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE") ~ "Nordeste",
+    sgUF %in% c("DF", "GO", "MT", "MS") ~ "Centro-Oeste",
+    sgUF %in% c("ES", "MG", "RJ", "SP") ~ "Sudeste",
+    sgUF %in% c("PR", "RN", "SC") ~ "Sul"
+  ))
 
 ```
 
@@ -120,5 +115,34 @@ partidos %>%
              fill = quantidade)) +
   geom_col()
 
+```
+
+## Quais os deputados que mais ultrapassam o limite de CEAP do seu estado? 
+
+```{r message = FALSE}
+limiteMensal <- read_csv(here("data/limiteMensalCEAP.csv")) %>% 
+  select(sgUF = UF,
+         limite_mensal = limite_mensal)
+
+gastos_totais <- gastos %>% 
+  group_by(idCadastro, nomeParlamentar, sgUF, regiao) %>% 
+  summarise(total_gasto = sum(valorLíquido))
+
+gastos_totais <- left_join(gastos_totais, limiteMensal) %>% 
+  mutate(diferenca = limite_mensal - total_gasto)
+
+gastos_totais %>% 
+  group_by(sgUF) %>% 
+  filter(diferenca == min(diferenca)) %>% 
+  arrange(diferenca) %>% 
+  mutate(valor_ultrapassado = abs(diferenca)) %>% 
+  ggplot(aes(x = reorder(nomeParlamentar, valor_ultrapassado),
+             y = valor_ultrapassado,
+             fill = regiao,
+             label = sgUF)) +
+  geom_col(position = "identity") +
+  geom_text(position = position_stack(vjust = 1.05),
+            size = 2.5) +
+  coord_flip()
 ```
 
