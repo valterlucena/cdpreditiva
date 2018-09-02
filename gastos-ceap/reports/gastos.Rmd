@@ -124,25 +124,20 @@ limiteMensal <- read_csv(here("data/limiteMensalCEAP.csv")) %>%
   select(sgUF = UF,
          limite_mensal = limite_mensal)
 
-gastos_totais <- gastos %>% 
-  group_by(idCadastro, nomeParlamentar, sgUF, regiao) %>% 
-  summarise(total_gasto = sum(valorLíquido))
+gastos <- left_join(gastos, limiteMensal)
 
-gastos_totais <- left_join(gastos_totais, limiteMensal) %>% 
-  mutate(diferenca = limite_mensal - total_gasto)
-
-gastos_totais %>% 
-  group_by(sgUF) %>% 
-  filter(diferenca == min(diferenca)) %>% 
-  arrange(diferenca) %>% 
-  mutate(valor_ultrapassado = abs(diferenca)) %>% 
-  ggplot(aes(x = reorder(nomeParlamentar, valor_ultrapassado),
-             y = valor_ultrapassado,
-             fill = regiao,
-             label = sgUF)) +
-  geom_col(position = "identity") +
-  geom_text(position = position_stack(vjust = 1.05),
-            size = 2.5) +
-  coord_flip()
+gastos %>% 
+  filter(valorLíquido > limite_mensal) %>% 
+  group_by(idCadastro) %>% 
+  mutate(ultrapassagens = n()) %>% 
+  select(nomeParlamentar, sgUF, regiao, ultrapassagens) %>% 
+  unique() %>% 
+  ungroup() %>% 
+  arrange(desc(ultrapassagens)) %>% 
+  slice(1:10) %>% 
+  ggplot(aes(x = ultrapassagens,
+             y = reorder(nomeParlamentar, -ultrapassagens),
+             fill = regiao))+
+  geom_col() +
 ```
 
