@@ -2,7 +2,14 @@
 title: "Análise dos Gastos de Deputados"
 author: "Valter Lucena"
 date: "03 de setembro de 2018"
-output: html_document
+output:
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_float: yes
+  html_notebook:
+    toc: yes
+    toc_float: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -65,7 +72,10 @@ gastos %>%
                    xend = reorder(nomeParlamentar, total),
                    y = 0,
                    yend = total)) +
-  coord_flip()
+  coord_flip() +
+  guides(color = guide_legend("Estado")) +
+  labs(y = "Total gasto",
+       x = "Deputado")
 ```
 
 O deputado Edio Lopes lidera o ranking dos deputados que mais utilizam a CEAP. Podemos notar que o total gasto pelos deputados no ranking não difere muito. Notamos também que todos os deputados do "top 10" são de estados da região Norte do país, e que 4 deles são do estado de Roraima.
@@ -89,7 +99,10 @@ gastos %>%
                    xend = reorder(nomeParlamentar, -total),
                    y = 0,
                    yend = total)) +
-  coord_flip()
+  coord_flip() +
+  guides(color = guide_legend("Estado")) +
+  labs(y = "Total gasto",
+       x = "Deputado")
 ```
 
 Sabendo que o total utilizado nos gráficos refere-se à soma de todas as despesas associadas à um deputado, é importante salientar aqui a enorme diferença entre o total gasto pelos deputados que mais gastam e o total dos que menos gastam. 
@@ -104,14 +117,17 @@ gastos %>%
   ggplot(aes(x = reorder(sgUF, total),
              y = total,
              fill = regiao)) +
-  geom_col(position = position_identity())
+  geom_col(position = position_identity()) +
+  guides(fill = guide_legend("Região")) +
+  labs(y = "Total gasto com despesas no exterior",
+       x = "Estado")
 ```
 
 Entre os estados que mais gastam no exterior, encontram-se São Paulo, Minas Gerais, Pernambuco, Roraima e Ceará. Entre os que menos gastam, estão Maranhão, Paraíba, Pará, Sergipe e Espírito Santo. Vemos aqui que as regiões Norte, Nordeste e Sudeste contemplam ambos os extremos do gráfico. 
 
 ## Quais os partidos cujos parlamentares mais usam CEAP no estado da Paraíba? Quais são os que menos usam? Mesmas perguntas considerando valores em R$.
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 partidos <- gastos %>% 
   filter(sgUF %in% c("PB")) %>% 
   group_by(sgPartido) %>%
@@ -121,22 +137,28 @@ partidos <- gastos %>%
 
 Considerando a quantidade de gastos, temos:
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 partidos %>% 
   ggplot(aes(x = reorder(sgPartido, quantidade),
              y = quantidade,
              fill = quantidade)) +
-  geom_col()
+  geom_col() +
+  guides(fill = guide_legend("Quantidade")) +
+  labs(y = "Quantidade de gastos",
+       x = "Partido")
 ```
 
 O PMDB lidera o ranking aqui, com aproximadamente 4000 gastos utilizando a CEAP. Vejamos agora o que acontece se considerarmos o valor gasto.
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 partidos %>% 
   ggplot(aes(x = reorder(sgPartido, total),
              y = total,
              fill = total)) +
-  geom_col()
+  geom_col() +
+  guides(fill = guide_legend("Total gasto")) +
+  labs(y = "Total gasto utilizando a CEAP",
+       x = "Partido")
 ```
 
 Considerando o valor gasto pelos deputados, novamente o PMDB lidera o ranking, gastando no total quase 4 milhões de reais da CEAP.
@@ -145,7 +167,7 @@ Considerando o valor gasto pelos deputados, novamente o PMDB lidera o ranking, g
 
 Para responder essa pergunta, precisaremos dos dados do limite mensal da CEAP para cada estado.
 
-```{r message = FALSE}
+```{r message=FALSE, warning=FALSE}
 limiteMensal <- read_csv(here("data/limiteMensalCEAP.csv")) %>% 
   select(sgUF = UF,
          limite_mensal = limite_mensal)
@@ -157,7 +179,7 @@ gastos <- left_join(gastos, limiteMensal) %>%
 
 Vejamos, agora, quais os deputados que mais ultrapassam esse limite.
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 gastos %>% 
   group_by(nomeParlamentar,
            mes,
@@ -177,14 +199,17 @@ gastos %>%
              y = estouros,
              fill = sgUF)) +
   geom_col() +
-  coord_flip()
+  coord_flip() +
+  guides(fill = guide_legend("Estado")) +
+  labs(y = "Quantidade de estouros do limite mensal",
+       x = "Deputado")
 ```
 
 O deputado Felipe Bornier lidera o ranking como o deputado que mais ultrapassa o limite da CEAP de seu estado, que é o Rio de Janeiro. Todos os deputados do ranking são das regiões Sudeste e Nordeste, que são representadas por 8 e 2 deputados, respectivamente.
 
 ## Quais estados cujos parlamentares gastam mais com passagens aéreas?
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 gastos %>% 
   filter(tipoDespesa %in% c("PASSAGENS AÉREAS")) %>% 
   group_by(sgUF, regiao) %>%
@@ -195,16 +220,19 @@ gastos %>%
              y = total,
              fill = regiao)) +
   geom_col() +
-  theme(axis.text.x = element_text(size = 7.5))
+  theme(axis.text.x = element_text(size = 7.5)) +
+  guides(fill = guide_legend("Região")) +
+  labs(y = "Quantidade de desespesas com passagens aéreas",
+       x = "Estado")
 ```
 
 Pelo gráfico, podemos observar que São Paulo é o estado cujos deputados mais gastam com passagens aéreas. É interessante observar aqui que todos os estados da região Sudeste estão presentes neste top 10.
 
 ## Escolha três partidos e responda: Quais são os tipos de despesa mais utilizados no uso da CEAP pelos deputados desses partidos? Mesma pergunta considerando valores em R$.
 
-Os partidos escolhidos foram o PMDB, DEM  e PSDB. 
+Os partidos escolhidos foram o PMDB, DEM  e PSDB.
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 gastos %>% 
   filter(sgPartido %in% c("PMDB", "DEM", "PSDB")) %>% 
   group_by(tipoDespesa, sgPartido) %>% 
@@ -214,7 +242,10 @@ gastos %>%
              fill = sgPartido)) +
   geom_col(position = "dodge") +
   coord_flip() +
-  theme(axis.text.y = element_text(size = 7.5))
+  theme(axis.text.y = element_text(size = 7.5)) +
+  guides(fill = guide_legend("Partido")) +
+  labs(x = "Tipo da despesa",
+       y = "Quantidade de vezes que o tipo da despesa foi utilizada")
 ```
 
 O tipo de despesa mais utilizado pelos 3 partidos são referentes à emissão de bilhetes aéreos, seguido de despesas com combustíveis e telefonia.
