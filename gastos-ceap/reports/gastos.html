@@ -235,9 +235,11 @@ theme_set(theme_minimal()) </code></pre>
 <h1>Dados</h1>
 <p>Esta análise objetiva entender melhor o uso da <a href="http://www2.camara.leg.br/transparencia/acesso-a-informacao/copy_of_perguntas-frequentes/cota-para-o-exercicio-da-atividade-parlamentar">Cota ara o Exercício da Atividade Parlamentar (CEAP)</a> dos deputados federais brasileiros.</p>
 <p>Inicialmente, vamos importar nossos dados e ver sobre quais variáveis temos informações.</p>
-<pre class="r"><code>gastos &lt;- read_csv(here(&quot;data/dadosCEAP.csv&quot;),
+<pre class="r"><code># lê os dados 
+gastos &lt;- read_csv(here(&quot;data/dadosCEAP.csv&quot;),
                    progress = FALSE)
 
+# mostra o nome das variáveis disponíveis
 gastos %&gt;% names()</code></pre>
 <pre><code>##  [1] &quot;nomeParlamentar&quot; &quot;idCadastro&quot;      &quot;sgUF&quot;           
 ##  [4] &quot;sgPartido&quot;       &quot;tipoDespesa&quot;     &quot;especDespesa&quot;   
@@ -245,7 +247,8 @@ gastos %&gt;% names()</code></pre>
 ## [10] &quot;dataEmissao&quot;     &quot;valorDocumento&quot;  &quot;valorGlosa&quot;     
 ## [13] &quot;valorLíquido&quot;</code></pre>
 <p>Na base de dados, cada observação refere-se à uma despesa de algum deputado. Para visualizar melhor, futuramente, esses dados, vamos acrescentar à eles a região de cada estado que elegeu o parlamentar.</p>
-<pre class="r"><code>gastos &lt;- gastos %&gt;% 
+<pre class="r"><code># adiciona uma nova variável contendo a região à qual cada estado pertence
+gastos &lt;- gastos %&gt;% 
   mutate(regiao = case_when(
     sgUF %in% c(&quot;AC&quot;, &quot;AP&quot;, &quot;AM&quot;, &quot;PA&quot;, &quot;RO&quot;, &quot;RR&quot;, &quot;TO&quot;) ~ &quot;Norte&quot;,
     sgUF %in% c(&quot;AL&quot;, &quot;BA&quot;, &quot;CE&quot;, &quot;MA&quot;, &quot;PB&quot;, &quot;PE&quot;, &quot;PI&quot;, &quot;RN&quot;, &quot;SE&quot;) ~ &quot;Nordeste&quot;,
@@ -261,12 +264,12 @@ gastos %&gt;% names()</code></pre>
 <p>Primeiramente, vamos ver quais os deputados que mais gastam. Como nossa base de dados é muito extensa, vamos selecionar apenas os 10 deputados que gastam mais dinheiro da CEAP.</p>
 <pre class="r"><code>gastos %&gt;% 
   group_by(nomeParlamentar, sgUF) %&gt;% 
-  summarise(total = sum(valorLíquido)) %&gt;% 
+  summarise(total = sum(valorLíquido)) %&gt;% # total gasto por um deputado
   filter(total &gt;= 0) %&gt;% 
   ungroup() %&gt;% 
-  arrange(-total) %&gt;% 
-  slice(1:10) %&gt;%
-  na.omit() %&gt;% 
+  arrange(-total) %&gt;% # ordena de forma descrescente
+  slice(1:10) %&gt;% # seleciona os 10 maiores valores
+  na.omit() %&gt;%  # omite valores inexistentes
   ggplot(aes(x = reorder(nomeParlamentar, total),
              y = total,
              colour = sgUF)) +
@@ -284,12 +287,12 @@ gastos %&gt;% names()</code></pre>
 <p>Vejamos, agora, quais os que menos gastam. Novamente, selecionaremos apenas um “bottom 10” de deputados.</p>
 <pre class="r"><code>gastos %&gt;% 
   group_by(nomeParlamentar, sgUF) %&gt;% 
-  summarise(total = sum(valorLíquido)) %&gt;% 
+  summarise(total = sum(valorLíquido)) %&gt;% # total gasto por um deputado
   filter(total &gt;= 0) %&gt;% 
   ungroup() %&gt;% 
-  arrange(total) %&gt;% 
-  slice(1:10) %&gt;%
-  na.omit() %&gt;% 
+  arrange(total) %&gt;% # ordena de forma crescente
+  slice(1:10) %&gt;% # seleciona os 10 menores valores
+  na.omit() %&gt;% # omite valores inexistentes
   ggplot(aes(x = reorder(nomeParlamentar, -total),
              y = total,
              colour = sgUF)) +
@@ -308,9 +311,9 @@ gastos %&gt;% names()</code></pre>
 <div id="quais-os-estados-cujos-deputados-gastam-mais-no-exterior-quais-os-estados-cujos-deputados-gastam-menos-no-exterior" class="section level2">
 <h2>Quais os estados cujos deputados gastam mais no exterior? Quais os estados cujos deputados gastam menos no exterior?</h2>
 <pre class="r"><code>gastos %&gt;%
-  filter(tipoDocumento == 2) %&gt;% 
+  filter(tipoDocumento == 2) %&gt;% # seleciona apenas observacoes referentes à gastos no exterior
   group_by(sgUF, regiao) %&gt;%
-  summarise(total = sum(valorLíquido)) %&gt;% 
+  summarise(total = sum(valorLíquido)) %&gt;% # calcula o total gasto por estado
   ggplot(aes(x = reorder(sgUF, total),
              y = total,
              fill = regiao)) +
@@ -324,10 +327,10 @@ gastos %&gt;% names()</code></pre>
 <div id="quais-os-partidos-cujos-parlamentares-mais-usam-ceap-no-estado-da-paraiba-quais-sao-os-que-menos-usam-mesmas-perguntas-considerando-valores-em-r." class="section level2">
 <h2>Quais os partidos cujos parlamentares mais usam CEAP no estado da Paraíba? Quais são os que menos usam? Mesmas perguntas considerando valores em R$.</h2>
 <pre class="r"><code>partidos &lt;- gastos %&gt;% 
-  filter(sgUF %in% c(&quot;PB&quot;)) %&gt;% 
+  filter(sgUF %in% c(&quot;PB&quot;)) %&gt;% # seleciona apenas dados da Paraíba
   group_by(sgPartido) %&gt;%
-  summarise(total = sum(valorLíquido), 
-            quantidade = n())</code></pre>
+  summarise(total = sum(valorLíquido), # soma o total gasto por partido
+            quantidade = n()) # conta quantas despesas (linhas) existem para cada partido</code></pre>
 <p>Considerando a quantidade de gastos, temos:</p>
 <pre class="r"><code>partidos %&gt;% 
   ggplot(aes(x = reorder(sgPartido, quantidade),
@@ -355,11 +358,11 @@ gastos %&gt;% names()</code></pre>
 <p>Para responder essa pergunta, precisaremos dos dados do limite mensal da CEAP para cada estado.</p>
 <pre class="r"><code>limiteMensal &lt;- read_csv(here(&quot;data/limiteMensalCEAP.csv&quot;)) %&gt;% 
   select(sgUF = UF,
-         limite_mensal = limite_mensal)
+         limite_mensal = limite_mensal) # modifica o nome das variaveis para que o join seja possível
 
-gastos &lt;- left_join(gastos, limiteMensal) %&gt;% 
-  mutate(mes = months(as.Date(dataEmissao)),
-         ano = format(dataEmissao, &quot;%Y&quot;))</code></pre>
+gastos &lt;- left_join(gastos, limiteMensal) %&gt;% # une as duas bases de dados com base no estado
+  mutate(mes = months(as.Date(dataEmissao)), # cria uma nova coluna com o mes de uma despesa
+         ano = format(dataEmissao, &quot;%Y&quot;)) # cria uma nova coluna com o ano de uma despesa</code></pre>
 <p>Vejamos, agora, quais os deputados que mais ultrapassam esse limite.</p>
 <pre class="r"><code>gastos %&gt;% 
   group_by(nomeParlamentar,
@@ -368,14 +371,14 @@ gastos &lt;- left_join(gastos, limiteMensal) %&gt;%
            limite_mensal,
            sgUF) %&gt;% 
   filter(valorLíquido &gt;= 0) %&gt;% 
-  summarise(total = sum(valorLíquido)) %&gt;% 
-  filter(total &gt; limite_mensal) %&gt;% 
+  summarise(total = sum(valorLíquido)) %&gt;% # calcula o total gasto em um mes de um determinado ano por um deputado
+  filter(total &gt; limite_mensal) %&gt;% # mantém as observações onde o total excede o limite mensal de cada estado
   ungroup() %&gt;% 
   group_by(nomeParlamentar, sgUF) %&gt;% 
-  summarise(estouros = n()) %&gt;% 
+  summarise(estouros = n()) %&gt;% # contabiliza a quantidade de vezes em que um deputado ultrapassa o limite mensal estipulado
   ungroup() %&gt;% 
-  arrange(-estouros) %&gt;% 
-  slice(1:10) %&gt;% 
+  arrange(-estouros) %&gt;% # ordena a quantidade de estouros de forma descrescente
+  slice(1:10) %&gt;% # seleciona os 10 maiores valores
   ggplot(aes(x = reorder(nomeParlamentar, estouros),
              y = estouros,
              fill = sgUF)) +
@@ -390,11 +393,11 @@ gastos &lt;- left_join(gastos, limiteMensal) %&gt;%
 <div id="quais-estados-cujos-parlamentares-gastam-mais-com-passagens-aereas" class="section level2">
 <h2>Quais estados cujos parlamentares gastam mais com passagens aéreas?</h2>
 <pre class="r"><code>gastos %&gt;% 
-  filter(tipoDespesa %in% c(&quot;PASSAGENS AÉREAS&quot;)) %&gt;% 
+  filter(tipoDespesa %in% c(&quot;PASSAGENS AÉREAS&quot;)) %&gt;% # mantém somente as observações referentes à despesas com passagens aéreas
   group_by(sgUF, regiao) %&gt;%
-  summarise(total = n()) %&gt;% 
-  arrange(total) %&gt;% 
-  na.omit() %&gt;% 
+  summarise(total = n()) %&gt;% # calcula a quantidade de despesas com passagens aéreas de cada estado
+  arrange(total) %&gt;% # ordena o valor calculado de forma crescente
+  na.omit() %&gt;% # omite observacoes inexistentes
   ggplot(aes(x = reorder(sgUF, total),
              y = total,
              fill = regiao)) +
@@ -410,9 +413,9 @@ gastos &lt;- left_join(gastos, limiteMensal) %&gt;%
 <h2>Escolha três partidos e responda: Quais são os tipos de despesa mais utilizados no uso da CEAP pelos deputados desses partidos? Mesma pergunta considerando valores em R$.</h2>
 <p>Os partidos escolhidos foram o PMDB, DEM e PSDB.</p>
 <pre class="r"><code>gastos %&gt;% 
-  filter(sgPartido %in% c(&quot;PMDB&quot;, &quot;DEM&quot;, &quot;PSDB&quot;)) %&gt;% 
+  filter(sgPartido %in% c(&quot;PMDB&quot;, &quot;DEM&quot;, &quot;PSDB&quot;)) %&gt;% # mantém somente as observações dos partidos escolhidos
   group_by(tipoDespesa, sgPartido) %&gt;% 
-  summarise(count = n()) %&gt;% 
+  summarise(count = n()) %&gt;% # contabiliza a quantidade de despesas de cada tipo por partido
   ggplot(aes(x = reorder(tipoDespesa, count),
              y = count,
              fill = sgPartido)) +

@@ -29,15 +29,18 @@ Esta análise objetiva entender melhor o uso da [Cota ara o Exercício da Ativid
 Inicialmente, vamos importar nossos dados e ver sobre quais variáveis temos informações.
 
 ```{r message=FALSE, warning=FALSE}
+# lê os dados 
 gastos <- read_csv(here("data/dadosCEAP.csv"),
                    progress = FALSE)
 
+# mostra o nome das variáveis disponíveis
 gastos %>% names()
 ```
 
 Na base de dados, cada observação refere-se à uma despesa de algum deputado. Para visualizar melhor, futuramente, esses dados, vamos acrescentar à eles a região de cada estado que elegeu o parlamentar.
 
 ```{r message=FALSE, warning=FALSE}
+# adiciona uma nova variável contendo a região à qual cada estado pertence
 gastos <- gastos %>% 
   mutate(regiao = case_when(
     sgUF %in% c("AC", "AP", "AM", "PA", "RO", "RR", "TO") ~ "Norte",
@@ -58,12 +61,12 @@ Primeiramente, vamos ver quais os deputados que mais gastam. Como nossa base de 
 ```{r message=FALSE, warning=FALSE}
 gastos %>% 
   group_by(nomeParlamentar, sgUF) %>% 
-  summarise(total = sum(valorLíquido)) %>% 
+  summarise(total = sum(valorLíquido)) %>% # total gasto por um deputado
   filter(total >= 0) %>% 
   ungroup() %>% 
-  arrange(-total) %>% 
-  slice(1:10) %>%
-  na.omit() %>% 
+  arrange(-total) %>% # ordena de forma descrescente
+  slice(1:10) %>% # seleciona os 10 maiores valores
+  na.omit() %>%  # omite valores inexistentes
   ggplot(aes(x = reorder(nomeParlamentar, total),
              y = total,
              colour = sgUF)) +
@@ -85,12 +88,12 @@ Vejamos, agora, quais os que menos gastam. Novamente, selecionaremos apenas um "
 ```{r message=FALSE, warning=FALSE}
 gastos %>% 
   group_by(nomeParlamentar, sgUF) %>% 
-  summarise(total = sum(valorLíquido)) %>% 
+  summarise(total = sum(valorLíquido)) %>% # total gasto por um deputado
   filter(total >= 0) %>% 
   ungroup() %>% 
-  arrange(total) %>% 
-  slice(1:10) %>%
-  na.omit() %>% 
+  arrange(total) %>% # ordena de forma crescente
+  slice(1:10) %>% # seleciona os 10 menores valores
+  na.omit() %>% # omite valores inexistentes
   ggplot(aes(x = reorder(nomeParlamentar, -total),
              y = total,
              colour = sgUF)) +
@@ -111,9 +114,9 @@ Sabendo que o total utilizado nos gráficos refere-se à soma de todas as despes
 
 ```{r message=FALSE, warning=FALSE}
 gastos %>%
-  filter(tipoDocumento == 2) %>% 
+  filter(tipoDocumento == 2) %>% # seleciona apenas observacoes referentes à gastos no exterior
   group_by(sgUF, regiao) %>%
-  summarise(total = sum(valorLíquido)) %>% 
+  summarise(total = sum(valorLíquido)) %>% # calcula o total gasto por estado
   ggplot(aes(x = reorder(sgUF, total),
              y = total,
              fill = regiao)) +
@@ -129,10 +132,10 @@ Entre os estados que mais gastam no exterior, encontram-se São Paulo, Minas Ger
 
 ```{r message=FALSE, warning=FALSE}
 partidos <- gastos %>% 
-  filter(sgUF %in% c("PB")) %>% 
+  filter(sgUF %in% c("PB")) %>% # seleciona apenas dados da Paraíba
   group_by(sgPartido) %>%
-  summarise(total = sum(valorLíquido), 
-            quantidade = n())
+  summarise(total = sum(valorLíquido), # soma o total gasto por partido
+            quantidade = n()) # conta quantas despesas (linhas) existem para cada partido
 ```
 
 Considerando a quantidade de gastos, temos:
@@ -170,11 +173,11 @@ Para responder essa pergunta, precisaremos dos dados do limite mensal da CEAP pa
 ```{r message=FALSE, warning=FALSE}
 limiteMensal <- read_csv(here("data/limiteMensalCEAP.csv")) %>% 
   select(sgUF = UF,
-         limite_mensal = limite_mensal)
+         limite_mensal = limite_mensal) # modifica o nome das variaveis para que o join seja possível
 
-gastos <- left_join(gastos, limiteMensal) %>% 
-  mutate(mes = months(as.Date(dataEmissao)),
-         ano = format(dataEmissao, "%Y"))
+gastos <- left_join(gastos, limiteMensal) %>% # une as duas bases de dados com base no estado
+  mutate(mes = months(as.Date(dataEmissao)), # cria uma nova coluna com o mes de uma despesa
+         ano = format(dataEmissao, "%Y")) # cria uma nova coluna com o ano de uma despesa
 ```
 
 Vejamos, agora, quais os deputados que mais ultrapassam esse limite.
@@ -187,14 +190,14 @@ gastos %>%
            limite_mensal,
            sgUF) %>% 
   filter(valorLíquido >= 0) %>% 
-  summarise(total = sum(valorLíquido)) %>% 
-  filter(total > limite_mensal) %>% 
+  summarise(total = sum(valorLíquido)) %>% # calcula o total gasto em um mes de um determinado ano por um deputado
+  filter(total > limite_mensal) %>% # mantém as observações onde o total excede o limite mensal de cada estado
   ungroup() %>% 
   group_by(nomeParlamentar, sgUF) %>% 
-  summarise(estouros = n()) %>% 
+  summarise(estouros = n()) %>% # contabiliza a quantidade de vezes em que um deputado ultrapassa o limite mensal estipulado
   ungroup() %>% 
-  arrange(-estouros) %>% 
-  slice(1:10) %>% 
+  arrange(-estouros) %>% # ordena a quantidade de estouros de forma descrescente
+  slice(1:10) %>% # seleciona os 10 maiores valores
   ggplot(aes(x = reorder(nomeParlamentar, estouros),
              y = estouros,
              fill = sgUF)) +
@@ -211,11 +214,11 @@ O deputado Felipe Bornier lidera o ranking como o deputado que mais ultrapassa o
 
 ```{r message=FALSE, warning=FALSE}
 gastos %>% 
-  filter(tipoDespesa %in% c("PASSAGENS AÉREAS")) %>% 
+  filter(tipoDespesa %in% c("PASSAGENS AÉREAS")) %>% # mantém somente as observações referentes à despesas com passagens aéreas
   group_by(sgUF, regiao) %>%
-  summarise(total = n()) %>% 
-  arrange(total) %>% 
-  na.omit() %>% 
+  summarise(total = n()) %>% # calcula a quantidade de despesas com passagens aéreas de cada estado
+  arrange(total) %>% # ordena o valor calculado de forma crescente
+  na.omit() %>% # omite observacoes inexistentes
   ggplot(aes(x = reorder(sgUF, total),
              y = total,
              fill = regiao)) +
@@ -234,9 +237,9 @@ Os partidos escolhidos foram o PMDB, DEM  e PSDB.
 
 ```{r message=FALSE, warning=FALSE}
 gastos %>% 
-  filter(sgPartido %in% c("PMDB", "DEM", "PSDB")) %>% 
+  filter(sgPartido %in% c("PMDB", "DEM", "PSDB")) %>% # mantém somente as observações dos partidos escolhidos
   group_by(tipoDespesa, sgPartido) %>% 
-  summarise(count = n()) %>% 
+  summarise(count = n()) %>% # contabiliza a quantidade de despesas de cada tipo por partido
   ggplot(aes(x = reorder(tipoDespesa, count),
              y = count,
              fill = sgPartido)) +
