@@ -12,6 +12,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r message=FALSE}
 library(tidyverse)
 library(here)
+theme_set(theme_minimal()) 
 ```
 
 # Dados
@@ -189,9 +190,11 @@ gastos %>%
 
 gastos %>% 
   filter(sgPartido %in% c("PSDB")) %>% 
-  ggplot(aes(x = tipoDespesa,
-             fill = sgPartido)) +
-  geom_bar(position = position_dodge()) +
+  group_by(tipoDespesa, sgPartido) %>% 
+  summarise(count = n()) %>% 
+  ggplot(aes(x = reorder(tipoDespesa, count),
+             y = count)) +
+  geom_col(position = "dodge") +
   coord_flip() +
   theme(axis.text.y = element_text(size = 10))
 ```
