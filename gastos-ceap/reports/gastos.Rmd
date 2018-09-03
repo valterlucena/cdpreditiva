@@ -26,7 +26,7 @@ gastos <- gastos %>%
     sgUF %in% c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE") ~ "Nordeste",
     sgUF %in% c("DF", "GO", "MT", "MS") ~ "Centro-Oeste",
     sgUF %in% c("ES", "MG", "RJ", "SP") ~ "Sudeste",
-    sgUF %in% c("PR", "RN", "SC") ~ "Sul"
+    sgUF %in% c("PR", "RS", "SC") ~ "Sul"
   ))
 
 ```
@@ -115,6 +115,11 @@ partidos %>%
              fill = quantidade)) +
   geom_col()
 
+partidos %>% 
+  ggplot(aes(x = reorder(sgPartido, total),
+             y = total,
+             fill = total)) +
+  geom_col()
 ```
 
 ## Quais os deputados que mais ultrapassam o limite de CEAP do seu estado? 
@@ -130,14 +135,64 @@ gastos %>%
   filter(valorLíquido > limite_mensal) %>% 
   group_by(idCadastro) %>% 
   mutate(ultrapassagens = n()) %>% 
-  select(nomeParlamentar, sgUF, regiao, ultrapassagens) %>% 
+  select(nomeParlamentar,
+         regiao, 
+         ultrapassagens,
+         sgPartido) %>% 
   unique() %>% 
   ungroup() %>% 
   arrange(desc(ultrapassagens)) %>% 
   slice(1:10) %>% 
-  ggplot(aes(x = ultrapassagens,
-             y = reorder(nomeParlamentar, -ultrapassagens),
-             fill = regiao))+
+  ggplot(aes(x = reorder(nomeParlamentar,
+                         ultrapassagens),
+             y = ultrapassagens,
+             fill = regiao,
+             label = sgPartido)) +
   geom_col() +
+  geom_text(position = position_stack(vjust = 0.5),
+            size = 3) +
+  coord_flip()
+```
+
+## Quais estados cujos parlamentares gastam mais com passagens aéreas?
+
+```{r}
+gastos %>% 
+  filter(tipoDespesa %in% c("PASSAGENS AÉREAS")) %>% 
+  group_by(sgUF, regiao) %>%
+  summarise(total = n()) %>% 
+  arrange(total) %>% 
+  ggplot(aes(x = reorder(sgUF, total),
+             y = total,
+             fill = regiao)) +
+  geom_col()
+```
+
+## Escolha três partidos e responda: Quais são os tipos de despesa mais utilizados no uso da CEAP pelos deputados desses partidos? Mesma pergunta considerando valores em R$.
+
+```{r}
+gastos %>% 
+  filter(sgPartido %in% c("PMDB")) %>% 
+  ggplot(aes(x = tipoDespesa,
+             fill = sgPartido)) +
+  geom_bar(position = position_dodge()) +
+  coord_flip() +
+  theme(axis.text.y = element_text(size = 10))
+
+gastos %>% 
+  filter(sgPartido %in% c("DEM")) %>% 
+  ggplot(aes(x = tipoDespesa,
+             fill = sgPartido)) +
+  geom_bar(position = position_dodge()) +
+  coord_flip() +
+  theme(axis.text.y = element_text(size = 10))
+
+gastos %>% 
+  filter(sgPartido %in% c("PSDB")) %>% 
+  ggplot(aes(x = tipoDespesa,
+             fill = sgPartido)) +
+  geom_bar(position = position_dodge()) +
+  coord_flip() +
+  theme(axis.text.y = element_text(size = 10))
 ```
 
