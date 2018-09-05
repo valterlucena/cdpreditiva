@@ -113,9 +113,8 @@ a <- gastos %>%
   mutate(quantidade_deputados = n()) %>% 
   unique()
 
-  cor(.,
-      x = quantidade_deputados,
-      y = total,
-      method = "pearson")
+cor(x = a$quantidade_deputados,
+    y = a$total,
+    method = "pearson")
 ```
 
