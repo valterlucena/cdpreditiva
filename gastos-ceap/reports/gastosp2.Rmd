@@ -1,0 +1,85 @@
+---
+title: "Ainda sobre a utilização da CEAP."
+author: "Valter Lucena"
+date: "5 de setembro de 2018"
+output: 
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_float: yes
+  html_notebook:
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(here)
+theme_set(theme_minimal()) 
+```
+
+# Dados
+
+Importando os dados
+
+```{r, message=FALSE, warning=FALSE}
+gastos <- read_csv(here("data/dadosCEAP.csv"),
+                   progress = FALSE)
+```
+
+adicionando a regiao
+
+```{r, message=FALSE, warning=FALSE}
+gastos <- gastos %>% 
+  mutate(regiao = case_when(
+    sgUF %in% c("AC", "AP", "AM", "PA", "RO", "RR", "TO") ~ "Norte",
+    sgUF %in% c("AL", "BA", "CE", "MA", "PB", "PE", "PI", "RN", "SE") ~ "Nordeste",
+    sgUF %in% c("DF", "GO", "MT", "MS") ~ "Centro-Oeste",
+    sgUF %in% c("ES", "MG", "RJ", "SP") ~ "Sudeste",
+    sgUF %in% c("PR", "RS", "SC") ~ "Sul"
+  ))
+```
+
+# Perguntas
+
+## Quais estados mais utilizam a CEAP com despesas com combustíveis?
+
+```{r}
+gastos %>% 
+  na.omit() %>% 
+  filter(tipoDespesa == "COMBUSTÍVEIS E LUBRIFICANTES.") %>% 
+  group_by(sgUF, regiao) %>% 
+  summarise(total = sum(valorLíquido)) %>% 
+  ungroup() %>% 
+  arrange(-total) %>% 
+  ggplot(aes(x = reorder(sgUF, total), 
+             y = total,
+             fill = regiao)) +
+  geom_col() +
+  facet_wrap(~ regiao,
+             scales = "free")
+```
+
+verificar se a quantidade de deputados por estado afeta esse total
+
+```{r}
+gastos %>% 
+  na.omit() %>% 
+  filter(tipoDespesa == "COMBUSTÍVEIS E LUBRIFICANTES.") %>% 
+  group_by(sgUF, regiao) %>% 
+  mutate(total = sum(valorLíquido)) %>% 
+  select(sgUF, regiao, nomeParlamentar, idCadastro, total) %>% 
+  unique() %>%
+  mutate(quantidade_deputados = n()) %>% 
+  unique() %>% 
+  ggplot(aes(x = quantidade_deputados,
+             y = total,
+             colour = regiao)) +
+  geom_point()
+```
+
+
