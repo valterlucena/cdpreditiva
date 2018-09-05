@@ -19,6 +19,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r, message=FALSE, warning=FALSE}
 library(tidyverse)
 library(here)
+library(plotly)
 theme_set(theme_minimal()) 
 ```
 
@@ -82,4 +83,39 @@ gastos %>%
   geom_point()
 ```
 
+```{r, warning=FALSE, message=FALSE}
+gastos %>% 
+  na.omit() %>% 
+  filter(tipoDespesa == "COMBUSTÍVEIS E LUBRIFICANTES.") %>% 
+  group_by(sgUF, regiao) %>% 
+  mutate(total = sum(valorLíquido)) %>% 
+  select(sgUF, regiao, nomeParlamentar, idCadastro, total) %>% 
+  unique() %>%
+  mutate(quantidade_deputados = n()) %>% 
+  unique() %>%
+  plot_ly(x = ~quantidade_deputados,
+          y = ~total,
+          color = ~regiao,
+          text = ~paste("Estado: ", sgUF,
+                         "<br>Deputados: ", quantidade_deputados,
+                         "<br>Região: ", regiao),
+          type = 'scatter')
+```
+
+```{r}
+a <- gastos %>% 
+  na.omit() %>% 
+  filter(tipoDespesa == "COMBUSTÍVEIS E LUBRIFICANTES.") %>% 
+  group_by(sgUF, regiao) %>% 
+  mutate(total = sum(valorLíquido)) %>% 
+  select(sgUF, regiao, nomeParlamentar, idCadastro, total) %>% 
+  unique() %>%
+  mutate(quantidade_deputados = n()) %>% 
+  unique()
+
+  cor(.,
+      x = quantidade_deputados,
+      y = total,
+      method = "pearson")
+```
 
