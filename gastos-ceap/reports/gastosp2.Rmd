@@ -118,3 +118,40 @@ cor(x = a$quantidade_deputados,
     method = "pearson")
 ```
 
+## quais candidatos são responsáveis pela maior parte dos gastos de seu estado?
+
+```{r}
+gastos %>% 
+  na.omit() %>% 
+  group_by(nomeParlamentar, sgUF) %>% 
+  mutate(total_candidato = sum(valorLíquido)) %>% 
+  ungroup() %>% 
+  group_by(sgUF) %>% 
+  mutate(total_estado = sum(valorLíquido),
+         proporcao = (total_candidato / total_estado)*100) %>% 
+  select(nomeParlamentar, 
+         sgPartido, 
+         total_candidato, 
+         sgUF, 
+         regiao, 
+         total_estado, 
+         proporcao) %>% 
+  unique() %>% 
+  arrange(-proporcao) %>% 
+  slice(1) %>% 
+  ggplot(aes(x = reorder(nomeParlamentar, proporcao),
+             y = proporcao,
+             colour = regiao)) +
+  geom_point(size = 6,
+             alpha = .7) +
+  geom_segment(aes(x = nomeParlamentar,
+                   xend = nomeParlamentar,
+                   y = 0,
+                   yend = proporcao)) +
+  geom_text(aes(label = paste(round(proporcao,1) ,"% (", sgUF, ")", sep = "")),
+            color = "black",
+            size = 2.5,
+            position = position_identity()) +
+  coord_flip()
+```
+
