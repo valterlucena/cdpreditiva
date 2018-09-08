@@ -23,18 +23,23 @@ library(plotly)
 theme_set(theme_minimal()) 
 ```
 
+A seguinte análise busca, ainda, entender um pouco mais sobre o uso da [Cota para o Exercício da Atividade Parlamentar (CEAP)](http://www2.camara.leg.br/transparencia/acesso-a-informacao/copy_of_perguntas-frequentes/cota-para-o-exercicio-da-atividade-parlamentar). Uma melhor explicação dos dados, assim como a primeira parte desta análise pode ser encontrada [aqui](https://rpubs.com/valterlucena/416513). 
+
 # Dados
 
-Importando os dados
+Inicialmente, vamos importar os dados.
 
 ```{r, message=FALSE, warning=FALSE}
 gastos <- read_csv(here("data/dadosCEAP.csv"),
                    progress = FALSE)
+
+gastos %>% names()
 ```
 
-adicionando a regiao
+Vamos adicionar, agora, a região de cada estado, para melhorar as futuras visualizações dos dados.
 
 ```{r, message=FALSE, warning=FALSE}
+# adiciona uma nova variável contendo a região à qual cada estado pertence
 gastos <- gastos %>% 
   mutate(regiao = case_when(
     sgUF %in% c("AC", "AP", "AM", "PA", "RO", "RR", "TO") ~ "Norte",
@@ -51,48 +56,37 @@ gastos <- gastos %>%
 
 ```{r}
 gastos %>% 
-  na.omit() %>% 
-  filter(tipoDespesa == "COMBUSTÍVEIS E LUBRIFICANTES.") %>% 
+  na.omit() %>% # elimina as observações onde alguma das variáveis naão possui nenhum valor
+  filter(tipoDespesa == "COMBUSTÍVEIS E LUBRIFICANTES.") %>% # mantém somente as observações referentes à este tipo de despesa
   group_by(sgUF, regiao) %>% 
-  summarise(total = sum(valorLíquido)) %>% 
+  summarise(total = sum(valorLíquido)) %>% # calcula o total gasto em cada estado
   ungroup() %>% 
-  arrange(-total) %>% 
+  arrange(-total) %>%  # ordena as observações de forma descrescente em relação ao total gasto
   ggplot(aes(x = reorder(sgUF, total), 
              y = total,
              fill = regiao)) +
   geom_col() +
+  guides(fill = guide_legend("Regiao")) +
+  labs(y = "Total gasto com combustíveis",
+       x = "Estado") +
+  theme(axis.text.x = element_text(size = 7)) +
   facet_wrap(~ regiao,
              scales = "free")
 ```
 
-verificar se a quantidade de deputados por estado afeta esse total
-
-```{r}
-gastos %>% 
-  na.omit() %>% 
-  filter(tipoDespesa == "COMBUSTÍVEIS E LUBRIFICANTES.") %>% 
-  group_by(sgUF, regiao) %>% 
-  mutate(total = sum(valorLíquido)) %>% 
-  select(sgUF, regiao, nomeParlamentar, idCadastro, total) %>% 
-  unique() %>%
-  mutate(quantidade_deputados = n()) %>% 
-  unique() %>% 
-  ggplot(aes(x = quantidade_deputados,
-             y = total,
-             colour = regiao)) +
-  geom_point()
-```
+O estado de Minas Gerais é o estado onde os deputados mais utilizam a CEAP para despesas com combustíveis. Observando o gráfico, os estados que mais gastam são estados muito populosos. Sabendo que esses estados também possuem muitos deputados, existe alguma associação entre o número de deputados e a utilização da CEAP? Podemos verificar se essa associação existe através de um gráfico de dispersão.
 
 ```{r, warning=FALSE, message=FALSE}
-gastos %>% 
+deputados_gastos <- gastos %>% 
   na.omit() %>% 
-  filter(tipoDespesa == "COMBUSTÍVEIS E LUBRIFICANTES.") %>% 
   group_by(sgUF, regiao) %>% 
   mutate(total = sum(valorLíquido)) %>% 
   select(sgUF, regiao, nomeParlamentar, idCadastro, total) %>% 
   unique() %>%
   mutate(quantidade_deputados = n()) %>% 
-  unique() %>%
+  unique()
+
+deputados_gastos %>% 
   plot_ly(x = ~quantidade_deputados,
           y = ~total,
           color = ~regiao,
@@ -102,56 +96,58 @@ gastos %>%
           type = 'scatter')
 ```
 
-```{r}
-a <- gastos %>% 
-  na.omit() %>% 
-  filter(tipoDespesa == "COMBUSTÍVEIS E LUBRIFICANTES.") %>% 
-  group_by(sgUF, regiao) %>% 
-  mutate(total = sum(valorLíquido)) %>% 
-  select(sgUF, regiao, nomeParlamentar, idCadastro, total) %>% 
-  unique() %>%
-  mutate(quantidade_deputados = n()) %>% 
-  unique()
+Podemos observar, pelo gráfico, que a medida que a quantidade de deputados aumenta, a quantidade utilizada da CEAP também aumenta. Logo, podemos dizer que há associação entre essas variáveis. Uma forma de medir essa associaçao é utilizando uma medida chamada de correlação linear. A correlação linear mede a relação linear entre elas e indica a força e a direção desse relacionamento. Essa medida é um valor entre -1 e 1 e é classificada da seguinte forma:
 
-cor(x = a$quantidade_deputados,
-    y = a$total,
+* A associação é dita fraca se o módulo de seu valor aproxima-se de 0, e forte quando aproxima-se de 1.
+* Se o valor da correlação é negativo, os valores de uma variável diminuem quando os da outra aumentam, e, se for positivo, aumentam quando os valores da outra variável também aumentam.
+
+```{r}
+cor(x = deputados_gastos$quantidade_deputados,
+    y = deputados_gastos$total,
     method = "pearson")
 ```
 
-## quais candidatos são responsáveis pela maior parte dos gastos de seu estado?
+Como o valor dessa correlação é 0.90, essa associação é forte e positiva. Então, quanto maior a quantidade de deputados em um estado, maior a utilização da CEAP.
+
+## Quais candidatos são responsáveis pela maior parte dos gastos de seu estado?
 
 ```{r}
 gastos %>% 
   na.omit() %>% 
   group_by(nomeParlamentar, sgUF) %>% 
-  mutate(total_candidato = sum(valorLíquido)) %>% 
+  mutate(deputado = paste(nomeParlamentar, " (", sgUF, ")", sep = ""), 
+         total_candidato = sum(valorLíquido)) %>% #gastos de um deputado
   ungroup() %>% 
   group_by(sgUF) %>% 
-  mutate(total_estado = sum(valorLíquido),
-         proporcao = (total_candidato / total_estado)*100) %>% 
-  select(nomeParlamentar, 
+  mutate(total_estado = sum(valorLíquido), # total utilizado do CEAP por estdo
+         porcentagem = (total_candidato / total_estado)*100) %>% # porcentagem do gasto de um deputado do total gasto por estado
+  select(deputado, 
          sgPartido, 
          total_candidato, 
          sgUF, 
          regiao, 
          total_estado, 
-         proporcao) %>% 
+         porcentagem) %>% 
   unique() %>% 
-  arrange(-proporcao) %>% 
-  slice(1) %>% 
-  ggplot(aes(x = reorder(nomeParlamentar, proporcao),
-             y = proporcao,
+  arrange(-porcentagem) %>% # ordena as observações de forma descrescente pela proporção de gastos de um deputado
+  slice(1) %>% # mantém somente o deputado que mais gasta de cada estado
+  ggplot(aes(x = reorder(deputado, porcentagem),
+             y = porcentagem,
              colour = regiao)) +
   geom_point(size = 6,
              alpha = .7) +
-  geom_segment(aes(x = nomeParlamentar,
-                   xend = nomeParlamentar,
+  geom_segment(aes(x = deputado,
+                   xend = deputado,
                    y = 0,
-                   yend = proporcao)) +
-  geom_text(aes(label = paste(round(proporcao,1) ,"% (", sgUF, ")", sep = "")),
+                   yend = porcentagem)) +
+  geom_text(aes(label = paste(round(porcentagem,1), "%", sep="")),
             color = "black",
-            size = 2.5,
-            position = position_identity()) +
+            size = 3,
+            position = position_stack()) +
+  guides(color = guide_legend("Regiao")) +
+  labs(y = "Porcentagem gasta do total",
+       x = "Deputado") +
   coord_flip()
 ```
 
+O deputado Marcos Rotta do estado do Amazonas, que possui 11 deputados, gasta sozinho quase 30% de todo o total utilizado da CEAP em seu estado. É importante observar aqui que os estados dos deputados com maiores porcentagens de gastos possuem menos deputados dos que os de porcentagem baixa. 
