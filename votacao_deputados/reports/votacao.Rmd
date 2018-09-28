@@ -1,0 +1,57 @@
+---
+title: "Explicando a votação de deputados com Regressão Linear"
+author: "Valter Lucena"
+date: "27 de setembro de 2018"
+output: 
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_float: yes
+  html_notebook:
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r, message=FALSE, warning=FALSE}
+library(tidyverse)
+library(here)
+library(plotly)
+theme_set(theme_minimal())
+```
+
+# le os dados
+
+```{r}
+
+importa_dados <- function (arquivo) {
+  data = read_csv(arquivo,
+                  progress = FALSE,
+                  col_types = cols(ano = col_integer(),
+                                   sequencial_candidato = col_character(),
+                                   quantidade_doacoes = col_integer(),
+                                   quantidade_doadores = col_integer(),
+                                   total_receita = col_double(),
+                                   media_receita = col_double(),
+                                   recursos_de_outros_candidatos.comites = col_double(),
+                                   recursos_de_pessoas_fisicas = col_double(),
+                                   recursos_de_pessoas_juridicas = col_double(),
+                                   recursos_proprios = col_double(),
+                                   `recursos_de_partido_politico` = col_double(),
+                                   quantidade_despesas = col_integer(),
+                                   quantidade_fornecedores = col_integer(),
+                                   total_despesa = col_double(),
+                                   media_despesa = col_double(),
+                                   votos = col_integer(),
+                                   .default = col_character()))
+  return(data)
+}
+
+eleicoes_2006 <- importa_dados(here("data/eleicoes_2006.csv"))
+eleicoes_2010 <- importa_dados(here("data/eleicoes_2010.csv"))
+eleicoes <- importa_dados(here("data/eleicoes_2006_e_2010.csv"))
+```
+
