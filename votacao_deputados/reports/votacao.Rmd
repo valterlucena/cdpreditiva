@@ -60,20 +60,20 @@ eleicoes %>% names()
 ```{r}
 variaveis_numericas <- function(dados) {
   nova = dados %>% 
-    select(quantidade_doacoes,
-           quantidade_doadores,
-           total_receita,
-           media_receita,
-           recursos_de_outros_candidatos.comites,
-           recursos_de_pessoas_fisicas,
-           recursos_de_pessoas_juridicas,
-           recursos_proprios,
-           recursos_de_partido_politico,
-           quantidade_despesas,
-           quantidade_fornecedores,
-           total_despesa,
-           media_despesa,
-           votos)
+    select(doacoes = quantidade_doacoes,
+         doadores = quantidade_doadores,
+         receita = total_receita,
+         media.rct = media_receita,
+         rec.comites = recursos_de_outros_candidatos.comites,
+         rec.fisica = recursos_de_pessoas_fisicas,
+         rec.juridica = recursos_de_pessoas_juridicas,
+         rec.proprios = recursos_proprios,
+         rec.partido = recursos_de_partido_politico,
+         despesas = quantidade_despesas,
+         fornecedores = quantidade_fornecedores,
+         total.dsp = total_despesa,
+         media.dsp = media_despesa,
+         votos = votos)
   return(nova)
 }
 
@@ -86,52 +86,29 @@ eleicoes_2010_num <- variaveis_numericas(eleicoes_2010)
 # assimetria
 
 ```{r message=FALSE}
-library(fBasics)
-eleicoes %>%  select(doacoes = quantidade_doacoes,
-         doadores = quantidade_doadores,
-         receita = total_receita,
-         media.rct = media_receita,
-         rec.comites = recursos_de_outros_candidatos.comites,
-         rec.fisica = recursos_de_pessoas_fisicas,
-         rec.juridica = recursos_de_pessoas_juridicas,
-         rec.proprios = recursos_proprios,
-         rec.partido = recursos_de_partido_politico,
-         despesas = quantidade_despesas,
-         fornecedores = quantidade_fornecedores,
-         total.dsp = total_despesa,
-         media.dsp = media_despesa,
-         votos = votos) %>%  
+eleicoes_num %>%  
   gather(key = "variavel",
          value = "valor") %>% 
-  ggplot(aes(x = valor)) +
+  ggplot(aes(x = valor, fill = variavel)) +
   geom_histogram() +
+  guides(fill = FALSE) +
   facet_wrap(~variavel,
-             scales = "free")
+             scales = "free_x",
+             ncol = 3)
 ```
 
 # transformando as variaveis
 
-```{r warning=FALSE}
-eleicoes %>%  select(doacoes = quantidade_doacoes,
-         doadores = quantidade_doadores,
-         receita = total_receita,
-         media.rct = media_receita,
-         rec.comites = recursos_de_outros_candidatos.comites,
-         rec.fisica = recursos_de_pessoas_fisicas,
-         rec.juridica = recursos_de_pessoas_juridicas,
-         rec.proprios = recursos_proprios,
-         rec.partido = recursos_de_partido_politico,
-         despesas = quantidade_despesas,
-         fornecedores = quantidade_fornecedores,
-         total.dsp = total_despesa,
-         media.dsp = media_despesa,
-         votos = votos) %>%  
+```{r warning=FALSE, message=FALSE}
+eleicoes_num %>%  
   gather(key = "variavel",
          value = "valor") %>% 
-  ggplot(aes(x = log(valor))) +
-  geom_histogram(bins = 20) +
+  ggplot(aes(x = log(valor), fill = variavel)) +
+  geom_histogram() +
+  guides(fill = FALSE) +
   facet_wrap(~variavel,
-             scales = "free")
+             scales = "free_x",
+             ncol = 3)
 ```
 
 # correlacoes
@@ -154,7 +131,6 @@ plota_correlograma <- function(dados, ano) {
          diag = FALSE,
          title = paste("Eleições ", ano)))
 }
-
 
 plota_correlograma(eleicoes_2006 %>% 
   select(doacoes = quantidade_doacoes,
