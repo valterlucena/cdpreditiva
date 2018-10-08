@@ -124,11 +124,12 @@ plota_correlograma <- function(dados, ano) {
   return(corrplot(correlacoes, 
          method = "color", 
          col = col(200),
-         type = "upper",
-         number.cex = .65,
+         type = "lower",
+         number.cex = .55,
          addCoef.col = "black",
          tl.col = "black",
          diag = FALSE,
+         tl.cex = .6,
          title = paste("Eleições ", ano)))
 }
 
@@ -148,3 +149,24 @@ plota_correlograma(eleicoes_2006 %>%
          media.dsp = media_despesa,
          votos = votos), 2006)
 ```
+
+# pergunta 1
+
+```{r}
+eleicoes_2006$ano = as.factor(eleicoes_2006$ano)
+eleicoes_2006$sequencial_candidato = as.factor(eleicoes_2006$sequencial_candidato)
+eleicoes_2006$nome = as.factor(eleicoes_2006$nome)
+eleicoes_2006$uf = as.factor(eleicoes_2006$uf)
+eleicoes_2006$partido = as.factor(eleicoes_2006$partido)
+eleicoes_2006$cargo = as.factor(eleicoes_2006$cargo)
+eleicoes_2006$sexo = as.factor(eleicoes_2006$sexo)
+eleicoes_2006$grau = as.factor(eleicoes_2006$grau)
+eleicoes_2006$estado_civil = as.factor(eleicoes_2006$estado_civil)
+eleicoes_2006$ocupacao = as.factor(eleicoes_2006$ocupacao)
+
+eleicoes_2006_a <- eleicoes_2006 %>% select(-cargo)
+
+modelo_2006 <- lm(votos ~ ., eleicoes_2006_a)
+summary(modelo_2006)
+```
+
