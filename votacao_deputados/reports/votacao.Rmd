@@ -21,6 +21,7 @@ library(tidyverse)
 library(here)
 library(plotly)
 theme_set(theme_minimal())
+options(max.print = .Machine$integer.max)
 ```
 
 # le os dados
@@ -99,6 +100,7 @@ eleicoes_num %>%
 
 # transformando as variaveis
 
+
 ```{r warning=FALSE, message=FALSE}
 eleicoes_num %>%  
   gather(key = "variavel",
@@ -133,7 +135,7 @@ plota_correlograma <- function(dados, ano) {
          title = paste("Eleições ", ano)))
 }
 
-plota_correlograma(eleicoes_2006 %>% 
+plota_correlograma(eleicoes %>% 
   select(doacoes = quantidade_doacoes,
          doadores = quantidade_doadores,
          receita = total_receita,
@@ -153,6 +155,20 @@ plota_correlograma(eleicoes_2006 %>%
 # pergunta 1
 
 ```{r}
+
+# eleicoes_2006 <- eleicoes_2006 %>% na.omit()
+# eleicoes_2006$quantidade_doacoes = log(eleicoes_2006$quantidade_doacoes)
+# eleicoes_2006$quantidade_doadores = log(eleicoes_2006$quantidade_doadores)
+# eleicoes_2006$quantidade_despesas = log(eleicoes_2006$quantidade_despesas)
+# eleicoes_2006$quantidade_fornecedores = log(eleicoes_2006$quantidade_fornecedores)
+# eleicoes_2006$total_receita = log(eleicoes_2006$total_despesa)
+# eleicoes_2006$media_receita = log(eleicoes_2006$media_receita)
+# eleicoes_2006$recursos_de_outros_candidatos.comites = log(eleicoes_2006$recursos_de_outros_candidatos.comites)
+# eleicoes_2006$recursos_de_pessoas_fisicas = log(eleicoes_2006$recursos_de_pessoas_fisicas)
+# eleicoes_2006$recursos_de_pessoas_juridicas = log(eleicoes_2006$recursos_de_pessoas_juridicas)
+# eleicoes_2006$recursos_proprios = log(eleicoes_2006$recursos_proprios)
+# eleicoes_2006$votos = log(eleicoes_2006$votos)
+
 eleicoes_2006$ano = as.factor(eleicoes_2006$ano)
 eleicoes_2006$sequencial_candidato = as.factor(eleicoes_2006$sequencial_candidato)
 eleicoes_2006$nome = as.factor(eleicoes_2006$nome)
@@ -166,13 +182,27 @@ eleicoes_2006$ocupacao = as.factor(eleicoes_2006$ocupacao)
 
 eleicoes_2006_a <- eleicoes_2006 %>% select(-ano, -sequencial_candidato, -nome, -cargo)
 
-modelo_2006 <- lm(votos ~ ., eleicoes_2006_a, na.action = na.omit)
+modelo_2006 <- lm(votos ~ ., eleicoes_2006_a)
 summary(modelo_2006)
 ```
 
 aparentemente nao. falar aqui sobre a quantidade de variaveis e como isso influencia em p-valor, R², etc.
 
 ```{r}
+eleicoes_2010 <- eleicoes_2010 %>% na.omit()
+
+# eleicoes_2010$quantidade_doacoes = log(eleicoes_2010$quantidade_doacoes)
+# eleicoes_2010$quantidade_doadores = log(eleicoes_2010$quantidade_doadores)
+# eleicoes_2010$quantidade_despesas = log(eleicoes_2010$quantidade_despesas)
+# eleicoes_2010$quantidade_fornecedores = log(eleicoes_2010$quantidade_fornecedores)
+# eleicoes_2010$total_receita = log(eleicoes_2010$total_despesa)
+# eleicoes_2010$media_receita = log(eleicoes_2010$media_receita)
+# eleicoes_2010$recursos_de_outros_candidatos.comites = log(eleicoes_2010$recursos_de_outros_candidatos.comites)
+# eleicoes_2010$recursos_de_pessoas_fisicas = log(eleicoes_2010$recursos_de_pessoas_fisicas)
+# eleicoes_2010$recursos_de_pessoas_juridicas = log(eleicoes_2010$recursos_de_pessoas_juridicas)
+# eleicoes_2010$recursos_proprios = log(eleicoes_2010$recursos_proprios)
+# eleicoes_2010$votos = log(eleicoes_2010$votos)
+
 eleicoes_2010$ano = as.factor(eleicoes_2010$ano)
 eleicoes_2010$sequencial_candidato = as.factor(eleicoes_2010$sequencial_candidato)
 eleicoes_2010$nome = as.factor(eleicoes_2010$nome)
@@ -186,11 +216,11 @@ eleicoes_2010$ocupacao = as.factor(eleicoes_2010$ocupacao)
 
 eleicoes_2010_a <- eleicoes_2010 %>% select(-ano, -sequencial_candidato, -nome, -cargo)
 
-modelo_2010 <- lm(votos ~ ., eleicoes_2010_a, na.action = na.omit)
+modelo_2010 <- lm(votos ~ ., eleicoes_2010_a)
 summary(modelo_2010)
 ```
 
-mesma coisa aqui
+ue
 
 # segunda pergunta
 
@@ -213,9 +243,6 @@ modelo_2006 %>%
   geom_hline(yintercept = 0, col = "red", linetype = "dashed")
 ```
 
-parecia ser bom mas ta meio enviesado. falar que eh por causa das relacoes entre as variavies preditoras
-
-para 2010
 
 ```{r}
 mean(modelo_2010$residuals)
@@ -239,4 +266,23 @@ qqline(modelo_2006$residuals, col = 2, lwd = 2, lty = 2)
 qqnorm(modelo_2010$residuals)
 qqline(modelo_2010$residuals, col = 2, lwd = 2, lty = 2)
 ```
+
+## segunda subpergunta
+
+vou comparar toda depois
+
+## terceira subpergunta
+
+r² 2006 = 0.5779
+r² 2010 = 0.5405
+
+# terceira pergunta
+
+mostrar os correlogramas, e cruza as informaçãoes com os resultados da regressao com todas as variaveis
+listar as variaveis significativas, falar de p-valor
+fazer as mesmas coisas pra menos significativas
+
+# quarta pergunta
+
+utilizar essas variaveis receita, rec.juridica, total.despesa, uf, ocupacao
 
