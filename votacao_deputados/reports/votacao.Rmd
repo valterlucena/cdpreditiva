@@ -127,11 +127,11 @@ plota_correlograma <- function(dados, ano) {
          method = "color", 
          col = col(200),
          type = "lower",
-         number.cex = .55,
+         number.cex = .6,
          addCoef.col = "black",
          tl.col = "black",
          diag = FALSE,
-         tl.cex = .6,
+         tl.cex = .7,
          title = paste("Eleições ", ano)))
 }
 
@@ -155,19 +155,18 @@ plota_correlograma(eleicoes %>%
 # pergunta 1
 
 ```{r}
-
-# eleicoes_2006 <- eleicoes_2006 %>% na.omit()
-# eleicoes_2006$quantidade_doacoes = log(eleicoes_2006$quantidade_doacoes)
-# eleicoes_2006$quantidade_doadores = log(eleicoes_2006$quantidade_doadores)
-# eleicoes_2006$quantidade_despesas = log(eleicoes_2006$quantidade_despesas)
-# eleicoes_2006$quantidade_fornecedores = log(eleicoes_2006$quantidade_fornecedores)
-# eleicoes_2006$total_receita = log(eleicoes_2006$total_despesa)
-# eleicoes_2006$media_receita = log(eleicoes_2006$media_receita)
-# eleicoes_2006$recursos_de_outros_candidatos.comites = log(eleicoes_2006$recursos_de_outros_candidatos.comites)
-# eleicoes_2006$recursos_de_pessoas_fisicas = log(eleicoes_2006$recursos_de_pessoas_fisicas)
-# eleicoes_2006$recursos_de_pessoas_juridicas = log(eleicoes_2006$recursos_de_pessoas_juridicas)
-# eleicoes_2006$recursos_proprios = log(eleicoes_2006$recursos_proprios)
-# eleicoes_2006$votos = log(eleicoes_2006$votos)
+eleicoes_2006 <- eleicoes_2006 %>% na.omit()
+eleicoes_2006$quantidade_doacoes = log(eleicoes_2006$quantidade_doacoes)
+eleicoes_2006$quantidade_doadores = log(eleicoes_2006$quantidade_doadores)
+eleicoes_2006$quantidade_despesas = log(eleicoes_2006$quantidade_despesas)
+eleicoes_2006$quantidade_fornecedores = log(eleicoes_2006$quantidade_fornecedores)
+eleicoes_2006$total_receita = log(eleicoes_2006$total_despesa)
+eleicoes_2006$media_receita = log(eleicoes_2006$media_receita)
+eleicoes_2006$recursos_de_outros_candidatos.comites = log(eleicoes_2006$recursos_de_outros_candidatos.comites)
+eleicoes_2006$recursos_de_pessoas_fisicas = log(eleicoes_2006$recursos_de_pessoas_fisicas)
+eleicoes_2006$recursos_de_pessoas_juridicas = log(eleicoes_2006$recursos_de_pessoas_juridicas)
+eleicoes_2006$recursos_proprios = log(eleicoes_2006$recursos_proprios)
+eleicoes_2006$votos = log(eleicoes_2006$votos)
 
 eleicoes_2006$ano = as.factor(eleicoes_2006$ano)
 eleicoes_2006$sequencial_candidato = as.factor(eleicoes_2006$sequencial_candidato)
@@ -191,17 +190,17 @@ aparentemente nao. falar aqui sobre a quantidade de variaveis e como isso influe
 ```{r}
 eleicoes_2010 <- eleicoes_2010 %>% na.omit()
 
-# eleicoes_2010$quantidade_doacoes = log(eleicoes_2010$quantidade_doacoes)
-# eleicoes_2010$quantidade_doadores = log(eleicoes_2010$quantidade_doadores)
-# eleicoes_2010$quantidade_despesas = log(eleicoes_2010$quantidade_despesas)
-# eleicoes_2010$quantidade_fornecedores = log(eleicoes_2010$quantidade_fornecedores)
-# eleicoes_2010$total_receita = log(eleicoes_2010$total_despesa)
-# eleicoes_2010$media_receita = log(eleicoes_2010$media_receita)
-# eleicoes_2010$recursos_de_outros_candidatos.comites = log(eleicoes_2010$recursos_de_outros_candidatos.comites)
-# eleicoes_2010$recursos_de_pessoas_fisicas = log(eleicoes_2010$recursos_de_pessoas_fisicas)
-# eleicoes_2010$recursos_de_pessoas_juridicas = log(eleicoes_2010$recursos_de_pessoas_juridicas)
-# eleicoes_2010$recursos_proprios = log(eleicoes_2010$recursos_proprios)
-# eleicoes_2010$votos = log(eleicoes_2010$votos)
+eleicoes_2010$quantidade_doacoes = log(eleicoes_2010$quantidade_doacoes)
+eleicoes_2010$quantidade_doadores = log(eleicoes_2010$quantidade_doadores)
+eleicoes_2010$quantidade_despesas = log(eleicoes_2010$quantidade_despesas)
+eleicoes_2010$quantidade_fornecedores = log(eleicoes_2010$quantidade_fornecedores)
+eleicoes_2010$total_receita = log(eleicoes_2010$total_despesa)
+eleicoes_2010$media_receita = log(eleicoes_2010$media_receita)
+eleicoes_2010$recursos_de_outros_candidatos.comites = log(eleicoes_2010$recursos_de_outros_candidatos.comites)
+eleicoes_2010$recursos_de_pessoas_fisicas = log(eleicoes_2010$recursos_de_pessoas_fisicas)
+eleicoes_2010$recursos_de_pessoas_juridicas = log(eleicoes_2010$recursos_de_pessoas_juridicas)
+eleicoes_2010$recursos_proprios = log(eleicoes_2010$recursos_proprios)
+eleicoes_2010$votos = log(eleicoes_2010$votos)
 
 eleicoes_2010$ano = as.factor(eleicoes_2010$ano)
 eleicoes_2010$sequencial_candidato = as.factor(eleicoes_2010$sequencial_candidato)
@@ -284,5 +283,55 @@ fazer as mesmas coisas pra menos significativas
 
 # quarta pergunta
 
-utilizar essas variaveis receita, rec.juridica, total.despesa, uf, ocupacao
+nao escolher = receita, rec.juridica, despesas, partido, quantidade_doacoes,
+quantidade_doadores, recursos_de_outros_candidatos, recursos_partido_politico,
+recursos_proprios, quantidade_despesas, quantidade_fornecedores, media_despesa, sexo,
+grau, estado_civil
 
+utilizar variaveis receita, rec.juridica, total.despesa, uf, ocupacao
+
+para 2006
+
+```{r}
+modelo_2006_novo <- lm(votos ~ uf + total_receita + media_receita + recursos_de_pessoas_fisicas, eleicoes_2006)
+summary(modelo_2006_novo)
+```
+
+```{r}
+mean(modelo_2006_novo$residuals)
+```
+
+```{r}
+modelo_2006_novo %>% 
+  ggplot(aes(.fitted, .resid)) +
+  geom_point(alpha = .3) +
+  geom_hline(yintercept = 0, col = "red", linetype = "dashed")
+```
+
+```{r}
+qqnorm(modelo_2006_novo$residuals)
+qqline(modelo_2006_novo$residuals, col = 2, lwd = 2, lty = 2)
+```
+
+para 2010
+
+```{r}
+modelo_2010_novo <- lm(votos ~ uf + total_receita + media_receita + recursos_de_pessoas_fisicas, eleicoes_2010)
+summary(modelo_2006_novo)
+```
+
+```{r}
+mean(modelo_2010_novo$residuals)
+```
+
+```{r}
+modelo_2010_novo %>% 
+  ggplot(aes(.fitted, .resid)) +
+  geom_point(alpha = .3) +
+  geom_hline(yintercept = 0, col = "red", linetype = "dashed")
+```
+
+```{r}
+qqnorm(modelo_2010_novo$residuals)
+qqline(modelo_2010_novo$residuals, col = 2, lwd = 2, lty = 2)
+```
