@@ -164,9 +164,79 @@ eleicoes_2006$grau = as.factor(eleicoes_2006$grau)
 eleicoes_2006$estado_civil = as.factor(eleicoes_2006$estado_civil)
 eleicoes_2006$ocupacao = as.factor(eleicoes_2006$ocupacao)
 
-eleicoes_2006_a <- eleicoes_2006 %>% select(-cargo)
+eleicoes_2006_a <- eleicoes_2006 %>% select(-ano, -sequencial_candidato, -nome, -cargo)
 
-modelo_2006 <- lm(votos ~ ., eleicoes_2006_a)
+modelo_2006 <- lm(votos ~ ., eleicoes_2006_a, na.action = na.omit)
 summary(modelo_2006)
+```
+
+aparentemente nao. falar aqui sobre a quantidade de variaveis e como isso influencia em p-valor, R², etc.
+
+```{r}
+eleicoes_2010$ano = as.factor(eleicoes_2010$ano)
+eleicoes_2010$sequencial_candidato = as.factor(eleicoes_2010$sequencial_candidato)
+eleicoes_2010$nome = as.factor(eleicoes_2010$nome)
+eleicoes_2010$uf = as.factor(eleicoes_2010$uf)
+eleicoes_2010$partido = as.factor(eleicoes_2010$partido)
+eleicoes_2010$cargo = as.factor(eleicoes_2010$cargo)
+eleicoes_2010$sexo = as.factor(eleicoes_2010$sexo)
+eleicoes_2010$grau = as.factor(eleicoes_2010$grau)
+eleicoes_2010$estado_civil = as.factor(eleicoes_2010$estado_civil)
+eleicoes_2010$ocupacao = as.factor(eleicoes_2010$ocupacao)
+
+eleicoes_2010_a <- eleicoes_2010 %>% select(-ano, -sequencial_candidato, -nome, -cargo)
+
+modelo_2010 <- lm(votos ~ ., eleicoes_2010_a, na.action = na.omit)
+summary(modelo_2010)
+```
+
+mesma coisa aqui
+
+# segunda pergunta
+
+## primeira subpergunta
+
+para 2006 
+
+```{r}
+# media dos residuos
+mean(modelo_2006$residuals)
+```
+
+parece ser bom pq eh proximo de 0
+
+```{r}
+# grafico de residuos vc ajustamento
+modelo_2006 %>% 
+  ggplot(aes(.fitted, .resid)) +
+  geom_point(alpha = .3) +
+  geom_hline(yintercept = 0, col = "red", linetype = "dashed")
+```
+
+parecia ser bom mas ta meio enviesado. falar que eh por causa das relacoes entre as variavies preditoras
+
+para 2010
+
+```{r}
+mean(modelo_2010$residuals)
+```
+
+proximo de 0 tbm
+
+```{r}
+modelo_2010 %>% 
+  ggplot(aes(.fitted, .resid)) +
+  geom_point(alpha = .3) +
+  geom_hline(yintercept = 0, col = "red", linetype = "dashed")
+```
+
+```{r}
+qqnorm(modelo_2006$residuals)
+qqline(modelo_2006$residuals, col = 2, lwd = 2, lty = 2)
+```
+
+```{r}
+qqnorm(modelo_2010$residuals)
+qqline(modelo_2010$residuals, col = 2, lwd = 2, lty = 2)
 ```
 
