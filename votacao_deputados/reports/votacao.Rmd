@@ -20,109 +20,258 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(here)
 library(plotly)
+library(corrplot)
 theme_set(theme_minimal())
 options(max.print = .Machine$integer.max)
 ```
 
-# le os dados
+# Introdução
 
-```{r}
+A seguinte análise tem como objetivo utilizar a regressão linear para explicar as votações para deputado nas eleições de 2006 e 2010. Os dados foram extraídos do Tribunal Superior Eleitoral e contém informações sobre aproximadamente 7300 candidatos. 
 
-importa_dados <- function (arquivo) {
-  data = read_csv(arquivo,
-                  progress = FALSE,
-                  col_types = cols(ano = col_integer(),
-                                   sequencial_candidato = col_character(),
-                                   quantidade_doacoes = col_integer(),
-                                   quantidade_doadores = col_integer(),
-                                   total_receita = col_double(),
-                                   media_receita = col_double(),
-                                   recursos_de_outros_candidatos.comites = col_double(),
-                                   recursos_de_pessoas_fisicas = col_double(),
-                                   recursos_de_pessoas_juridicas = col_double(),
-                                   recursos_proprios = col_double(),
-                                   `recursos_de_partido_politico` = col_double(),
-                                   quantidade_despesas = col_integer(),
-                                   quantidade_fornecedores = col_integer(),
-                                   total_despesa = col_double(),
-                                   media_despesa = col_double(),
-                                   votos = col_integer(),
-                                   .default = col_character()))
-  return(data)
-}
+Inicialmente vamos importar nossos dados, cuidando para que cada coluna seja importada com o tipo correto.
 
-eleicoes_2006 <- importa_dados(here("data/eleicoes_2006.csv"))
-eleicoes_2010 <- importa_dados(here("data/eleicoes_2010.csv"))
-eleicoes <- importa_dados(here("data/eleicoes_2006_e_2010.csv"))
+```{r message=FALSE, warning=FALSE}
+# lê o csv com os dados a serem utilizados com os tipos corretos para cada coluna
+eleicoes <- read_csv(here("data/eleicoes_2006_e_2010.csv"),
+                     progress = FALSE,
+                     col_types = cols(ano = col_integer(),
+                                      sequencial_candidato = col_character(),
+                                      quantidade_doacoes = col_integer(),
+                                      quantidade_doadores = col_integer(),
+                                      total_receita = col_double(),
+                                      media_receita = col_double(),
+                                      recursos_de_outros_candidatos.comites = col_double(),
+                                      recursos_de_pessoas_fisicas = col_double(),
+                                      recursos_de_pessoas_juridicas = col_double(),
+                                      recursos_proprios = col_double(),
+                                      recursos_de_partido_politico = col_double(),
+                                      quantidade_despesas = col_integer(),
+                                      quantidade_fornecedores = col_integer(),
+                                      total_despesa = col_double(),
+                                      media_despesa = col_double(),
+                                      votos = col_integer(),
+                                      .default = col_character()))
+```
+
+Para cada observação na base de dados, temos as seguintes informações:
+
+```{r message=FALSE, warning=FALSE}
 eleicoes %>% names()
 ```
 
+1. `sequencial_candidato`: identificador de um candidato
+2. `nome`: nome do candidato
+3. `uf`: estado do candidato
+3. `partido`: partido ao qual o candidatao é afiliado
+4. `quantidade_doacoes`: quantidade de doaces recebidas
+5. `quantidade_doadores`: quantidade de diferentes doadores
+6. `total_receita`: soma de todas as doações recebidas, em reais
+7. `media_receita`: média das doações recebidas
+8. `recursos_de_outros_candidatos.comites`: quantia doada por outros candidatos ou comitê partidário
+9. `recursos_de_pessoas_fisicas`: quantia doada por pessoas físicas
+10. `recursos_de_pessoas_juridicas`: quantia doada por empresas
+11. `recursos_proprios`: doações providas pelo próprio candidato
+12. `recursos_de_partido_politico`: doações providas pelo partido político do candidato
+13. `quantidade_despesas`: quantidade de diferentes despesas
+14. `quantidade_fornecedores`: quantidade de fornecedores diferentes
+15. `total_despesa`: soma das despesas da campanha, em reais
+16. `media_despesa`: media das despesas da campanha
+17. `cargo`: cargo ao qual o candidato se candidatou 
+18. `sexo`: sexo do candidato
+19. `grau`: grau de instrução do candidato
+20. `estado_civil`: estado civil do candidato
+21. `ocupacao`: profissão do candidato
+22. `votos`: total de votos recebidos pelo candidato
 
-```{r}
+Vamos, agora, tratar os valores NAs da nossa base de dados. Considerando a possível perda de informação ao remover as linhas que contenham esses valores, iremos substituir esses valores pelo valor da mediana da coluna à qual estes pertencem. Utilizaremos a mediana para isto, pois a mesma não é afetada por valores extremos, como a média.
+
+```{r message=FALSE, warning=FALSE}
+# função que substitui os valores NAs pela mediana da coluna à qual este valor pertence
+trataNa <- function(variavel) {
+  novosValores <- replace(variavel,
+                          is.na(variavel),
+                          median(variavel, na.rm = TRUE))
+  return(novosValores)
+}
+
+eleicoes$quantidade_doacoes <- trataNa(eleicoes$quantidade_doacoes)
+eleicoes$quantidade_doadores <- trataNa(eleicoes$quantidade_doadores)
+eleicoes$total_receita <- trataNa(eleicoes$total_receita)
+eleicoes$media_receita <- trataNa(eleicoes$media_receita)
+eleicoes$recursos_de_outros_candidatos.comites <- trataNa(eleicoes$recursos_de_outros_candidatos.comites)
+eleicoes$recursos_de_pessoas_fisicas <- trataNa(eleicoes$recursos_de_pessoas_fisicas)
+eleicoes$recursos_de_pessoas_juridicas <- trataNa(eleicoes$recursos_de_pessoas_juridicas)
+eleicoes$recursos_proprios <- trataNa(eleicoes$recursos_proprios)
+eleicoes$recursos_de_partido_politico <- trataNa(eleicoes$recursos_de_partido_politico)
+eleicoes$quantidade_despesas <- trataNa(eleicoes$quantidade_despesas)
+eleicoes$quantidade_fornecedores <- trataNa(eleicoes$quantidade_fornecedores)
+eleicoes$total_despesa <- trataNa(eleicoes$total_despesa)
+eleicoes$media_despesa <- trataNa(eleicoes$media_despesa)
+eleicoes$votos <- trataNa(eleicoes$votos)
+```
+
+Com os tipos corretos e os valores NAs devidamente tratados, vamos utilizar estas bases para responder algumas perguntas. 
+
+# Perguntas
+
+## Um modelo de regressão múltipla com todas as variáveis é plausível para explicar a variação em y (número de votos) em 2006? E para 2010?
+
+Antes de criarmos nossos modelos de regressão múltipla, vamos transformar nossas variáveis categóricas para que possam ser utilizadas como variáveis preditoras. Algumas variáveis na nossa base de dados servem apenas para identificar um candidato, por isso não as utilizaremos em nosso modelo. A variável `cargo` também não será utilizada, pois possui o mesmo valor para todas as observações. E algumas categóricas, geram fatores com muitos níveis, então ignoraremos estas também. Transformemos, então, somente as variáveis categóricas que iremos utilizar.
+
+```{r message=FALSE, warning=FALSE}
+eleicoes$sexo = as.factor(eleicoes$sexo)
+eleicoes$grau = as.factor(eleicoes$grau)
+eleicoes$estado_civil = as.factor(eleicoes$estado_civil)
+```
+
+Criaremos agora uma base de dados apenas com as variáveis que utilizaremos, aproveitando para divir esta base em uma para cada ano de eleição.
+
+```{r message=FALSE, warning=FALSE}
+eleicoes_selecionadas <- eleicoes %>% 
+  select(-sequencial_candidato,
+         -nome,
+         -cargo,
+         -uf,
+         -ocupacao,
+         -partido)
+
+eleicoes_2006 <- eleicoes_selecionadas %>% 
+  filter(ano == 2006) %>% 
+  select(-ano)
+
+eleicoes_2010 <- eleicoes_selecionadas %>% 
+  filter(ano == 2010) %>% 
+  select(-ano)
+
+eleicoes_selecionadas <- eleicoes_selecionadas %>% 
+  select(-ano)
+```
+
+Vamos, agora, criar nossos modelos.
+
+Para o ano de 2006:
+
+```{r message=FALSE, warning=FALSE}
+modelo_2006 <- lm(votos ~ ., eleicoes_2006)
+summary(modelo_2006)
+```
+
+Nosso modelo explica aproximadamente 51% (R² = 0.5198) da variação dos dados. Observamos que, mesmo retirando algumas variáveis, ainda há variáveis que não significativas (p-valor alto) para explicar a quantidade de votos.
+
+Para o ano de 2010:
+
+```{r message=FALSE, warning=FALSE}
+modelo_2010 <- lm(votos ~ ., eleicoes_2010)
+summary(modelo_2010)
+```
+
+Para o ano de 2010, a variação explicada pelo modelo diminui para aproximadamente 44.4% (R² = 0.4439). Aqui, também, ainda existem variáveis que não são significativas para explicar a quantidade de votos.
+
+## Comparando as regressões criadas para 2006 e 2010, quais as diferenças e semelhanças percebidas?
+
+Como dito anteriormente, ambos os modelos de regressão explicam em torno da metade da variação dos dados, e ainda possuem algumas variáveis que não são significativas para prever a quantidade de votos. Podemos comparar esses dois modelos em relação à seus resíduos, que representam a diferença entre o valor real e o previsto pelo modelo. Supõe-se que estes devem possuir uma média 0, variação constante e distribuição normal.
+
+Verificando as médias dos resíduos para cada modelo, temos:
+
+Para o ano de 2006:
+
+```{r message=FALSE, warning=FALSE}
+mean(modelo_2006$residuals)
+```
+
+Para o ano de 2010:
+
+```{r message=FALSE, warning=FALSE}
+mean(modelo_2010$residuals)
+```
+
+Para ambos os modelos, a média de seus resíduos aproximam-se de 0.
+
+Quanto à variação constante dos erros, podemos observar o comportamento dos erros em um gráfico de dispersão entre os resíduos e os valores ajustados. 
+
+Para o ano de 2006:
+
+```{r message=FALSE, warning=FALSE}
+modelo_2006 %>% 
+  ggplot(aes(.fitted, .resid)) +
+  geom_point(alpha = .3) +
+  geom_hline(yintercept = 0, col = "red", linetype = "dashed") +
+  labs(x = "Valores ajustados",
+       y = "Resíduos",
+       title = "Resíduos x Ajustamento")
+```
+
+Para o ano de 2010:
+
+```{r message=FALSE, warning=FALSE}
+modelo_2010 %>% 
+  ggplot(aes(.fitted, .resid)) +
+  geom_point(alpha = .3) +
+  geom_hline(yintercept = 0, col = "red", linetype = "dashed") +
+  labs(x = "Valores ajustados",
+       y = "Resíduos",
+       title = "Resíduos x Ajustamento")
+```
+
+Em nenhum dos modelos observa-se uma variação constante. O esperado seria que os resíduos tivessem uma distribuição aleatória, mas observamos que há uma tendência nos resíduos para ambos os modelos.
+
+Quanto à distruibuição normal, podemos usar um gráfico Q-Q, que irá comparar as distribuições de probabilidade dos nossos modelos com a distribuição de probabilidade normal. 
+
+Para o ano de 2006:
+
+```{r message=FALSE, warning=FALSE}
+qqnorm(modelo_2006$residuals)
+qqline(modelo_2006$residuals, col = 2, lwd = 2, lty = 2)
+```
+
+Para o ano de 2010:
+
+```{r message=FALSE, warning=FALSE}
+qqnorm(modelo_2010$residuals)
+qqline(modelo_2010$residuals, col = 2, lwd = 2, lty = 2)
+```
+
+No gráfico, a linha vermelha tracejada representa a distribuição normal. O ideal seria que todos os resíduos aproximassem-se da linha vermelha, mas, para ambos os modelos, apenas uma parte deles aproxima-se da linha.
+
+## Todas as variáveis são úteis para os modelos de regressão? Há variáveis redundantes?
+
+Podemos utilizar do sumário dos modelos para identificar as variáveis com maior significância, e um correlograma para identificar as variáveis redundantes.
+
+*Para o modelo com dados do ano de 2006:*
+
+Os resultados da regressão para o ano de 2006 mostram que as variáveis `quantidade_doacoes`,`quantidade_doadores`, `total_receita`, `recursos_de_outros_candidatos.comites`, `recursos_proprios`, `recuros_partido`, `quantidade_despesas`, `quantidade_fornecedores`, `media_despesa`, `sexo`, `grau` e `estado_civil` possuem um menor nível de significância. Vejamos agora as variáveis redundantes. Para isto, utilizaremos apenas as variáveis quantitativas.
+
+```{r message=FALSE, warning=FALSE}
+# funcao que retorna a base de dados apenas com variáveis quantitativas e modifica seus nomes para nomes mais curtos a fim de melhorar as visualizações.
 variaveis_numericas <- function(dados) {
   nova = dados %>% 
     select(doacoes = quantidade_doacoes,
          doadores = quantidade_doadores,
          receita = total_receita,
-         media.rct = media_receita,
-         rec.comites = recursos_de_outros_candidatos.comites,
-         rec.fisica = recursos_de_pessoas_fisicas,
-         rec.juridica = recursos_de_pessoas_juridicas,
-         rec.proprios = recursos_proprios,
-         rec.partido = recursos_de_partido_politico,
+         md_receita = media_receita,
+         rec_comites = recursos_de_outros_candidatos.comites,
+         rec_fisica = recursos_de_pessoas_fisicas,
+         rec_juridica = recursos_de_pessoas_juridicas,
+         rec_proprios = recursos_proprios,
+         rec_partido = recursos_de_partido_politico,
          despesas = quantidade_despesas,
          fornecedores = quantidade_fornecedores,
-         total.dsp = total_despesa,
-         media.dsp = media_despesa,
+         tot_despesa = total_despesa,
+         md_despesa = media_despesa,
          votos = votos)
   return(nova)
 }
-
-eleicoes_num <- variaveis_numericas(eleicoes)
-eleicoes_2006_num <- variaveis_numericas(eleicoes_2006)
-eleicoes_2010_num <- variaveis_numericas(eleicoes_2010)
+eleicoes_2006_num <- variaveis_numericas(eleicoes)
 ```
 
+Plotando o correlograma, temos:
 
-# assimetria
-
-```{r message=FALSE}
-eleicoes_num %>%  
-  gather(key = "variavel",
-         value = "valor") %>% 
-  ggplot(aes(x = valor, fill = variavel)) +
-  geom_histogram() +
-  guides(fill = FALSE) +
-  facet_wrap(~variavel,
-             scales = "free_x",
-             ncol = 3)
-```
-
-# transformando as variaveis
-
-
-```{r warning=FALSE, message=FALSE}
-eleicoes_num %>%  
-  gather(key = "variavel",
-         value = "valor") %>% 
-  ggplot(aes(x = log(valor), fill = variavel)) +
-  geom_histogram() +
-  guides(fill = FALSE) +
-  facet_wrap(~variavel,
-             scales = "free_x",
-             ncol = 3)
-```
-
-# correlacoes
-
-```{r message=FALSE}
-library(corrplot)
-
+```{r message=FALSE, warning=FALSE}
 plota_correlograma <- function(dados, ano) {
   col <- colorRampPalette(c("#BB4444", "#EE9988", "#FFFFFF", "#77AADD", "#4477AA"))
   correlacoes <- dados %>%
-  cor()
-  
+    cor()
   return(corrplot(correlacoes, 
          method = "color", 
          col = col(200),
@@ -135,203 +284,147 @@ plota_correlograma <- function(dados, ano) {
          title = paste("Eleições ", ano)))
 }
 
-plota_correlograma(eleicoes %>% 
-  select(doacoes = quantidade_doacoes,
-         doadores = quantidade_doadores,
-         receita = total_receita,
-         media.rct = media_receita,
-         rec.comites = recursos_de_outros_candidatos.comites,
-         rec.fisica = recursos_de_pessoas_fisicas,
-         rec.juridica = recursos_de_pessoas_juridicas,
-         rec.proprios = recursos_proprios,
-         rec.partido = recursos_de_partido_politico,
-         despesas = quantidade_despesas,
-         fornecedores = quantidade_fornecedores,
-         total.dsp = total_despesa,
-         media.dsp = media_despesa,
-         votos = votos), 2006)
+plota_correlograma(eleicoes_2006_num, 2006)
 ```
 
-# pergunta 1
+Considerando que duas variáveis são redundantes se o valor da correlação linear entre si é maior que 0.8, identificamos o seguinte:
 
-```{r}
-eleicoes_2006 <- eleicoes_2006 %>% na.omit()
-eleicoes_2006$quantidade_doacoes = log(eleicoes_2006$quantidade_doacoes)
-eleicoes_2006$quantidade_doadores = log(eleicoes_2006$quantidade_doadores)
-eleicoes_2006$quantidade_despesas = log(eleicoes_2006$quantidade_despesas)
-eleicoes_2006$quantidade_fornecedores = log(eleicoes_2006$quantidade_fornecedores)
-eleicoes_2006$total_receita = log(eleicoes_2006$total_despesa)
-eleicoes_2006$media_receita = log(eleicoes_2006$media_receita)
-eleicoes_2006$recursos_de_outros_candidatos.comites = log(eleicoes_2006$recursos_de_outros_candidatos.comites)
-eleicoes_2006$recursos_de_pessoas_fisicas = log(eleicoes_2006$recursos_de_pessoas_fisicas)
-eleicoes_2006$recursos_de_pessoas_juridicas = log(eleicoes_2006$recursos_de_pessoas_juridicas)
-eleicoes_2006$recursos_proprios = log(eleicoes_2006$recursos_proprios)
-eleicoes_2006$votos = log(eleicoes_2006$votos)
+* `total_receita`, `total_despesa` e `recursos_de_pessoas_juridicas` são redundantes entre si
+* `fornecedores` e `quantidade_despesas` são redundantes.
 
-eleicoes_2006$ano = as.factor(eleicoes_2006$ano)
-eleicoes_2006$sequencial_candidato = as.factor(eleicoes_2006$sequencial_candidato)
-eleicoes_2006$nome = as.factor(eleicoes_2006$nome)
-eleicoes_2006$uf = as.factor(eleicoes_2006$uf)
-eleicoes_2006$partido = as.factor(eleicoes_2006$partido)
-eleicoes_2006$cargo = as.factor(eleicoes_2006$cargo)
-eleicoes_2006$sexo = as.factor(eleicoes_2006$sexo)
-eleicoes_2006$grau = as.factor(eleicoes_2006$grau)
-eleicoes_2006$estado_civil = as.factor(eleicoes_2006$estado_civil)
-eleicoes_2006$ocupacao = as.factor(eleicoes_2006$ocupacao)
+Logo, concluímos que estas variáveis não são úteis para o modelo de regressão para o ano de 2006.
 
-eleicoes_2006_a <- eleicoes_2006 %>% select(-ano, -sequencial_candidato, -nome, -cargo)
+*Para o modelo com dados do ano de 2010*
 
-modelo_2006 <- lm(votos ~ ., eleicoes_2006_a)
-summary(modelo_2006)
+Os resultados da regressão indicam que as variáveis `quantidade_doacoes`,`quantidade_doadores`, `total_receita`, `recursos_de_outros_candidatos.comites`, `recursos_de_pessoas_juridicas`, `recursos_proprios`, `recuros_partido`, `quantidade_despesas`, `quantidade_fornecedores`, `media_despesa`, `sexo`, `grau` e `estado_civil` possuem um menor nível de significância. 
+
+Em comparação com o modelo de regressão para o ano de 2006, a variável `recursos_de_pessoas_juridicas` se encontrava entre as variáveis significativas.
+
+Novamente, para identificar as variáveis redundantes, vamos selecionar apenas as variáveis quantitativas.
+
+```{r message=FALSE, warning=FALSE}
+eleicoes_2010_num <- variaveis_numericas(eleicoes)
 ```
 
-aparentemente nao. falar aqui sobre a quantidade de variaveis e como isso influencia em p-valor, R², etc.
+Plotando o correlograma:
 
-```{r}
-eleicoes_2010 <- eleicoes_2010 %>% na.omit()
-
-eleicoes_2010$quantidade_doacoes = log(eleicoes_2010$quantidade_doacoes)
-eleicoes_2010$quantidade_doadores = log(eleicoes_2010$quantidade_doadores)
-eleicoes_2010$quantidade_despesas = log(eleicoes_2010$quantidade_despesas)
-eleicoes_2010$quantidade_fornecedores = log(eleicoes_2010$quantidade_fornecedores)
-eleicoes_2010$total_receita = log(eleicoes_2010$total_despesa)
-eleicoes_2010$media_receita = log(eleicoes_2010$media_receita)
-eleicoes_2010$recursos_de_outros_candidatos.comites = log(eleicoes_2010$recursos_de_outros_candidatos.comites)
-eleicoes_2010$recursos_de_pessoas_fisicas = log(eleicoes_2010$recursos_de_pessoas_fisicas)
-eleicoes_2010$recursos_de_pessoas_juridicas = log(eleicoes_2010$recursos_de_pessoas_juridicas)
-eleicoes_2010$recursos_proprios = log(eleicoes_2010$recursos_proprios)
-eleicoes_2010$votos = log(eleicoes_2010$votos)
-
-eleicoes_2010$ano = as.factor(eleicoes_2010$ano)
-eleicoes_2010$sequencial_candidato = as.factor(eleicoes_2010$sequencial_candidato)
-eleicoes_2010$nome = as.factor(eleicoes_2010$nome)
-eleicoes_2010$uf = as.factor(eleicoes_2010$uf)
-eleicoes_2010$partido = as.factor(eleicoes_2010$partido)
-eleicoes_2010$cargo = as.factor(eleicoes_2010$cargo)
-eleicoes_2010$sexo = as.factor(eleicoes_2010$sexo)
-eleicoes_2010$grau = as.factor(eleicoes_2010$grau)
-eleicoes_2010$estado_civil = as.factor(eleicoes_2010$estado_civil)
-eleicoes_2010$ocupacao = as.factor(eleicoes_2010$ocupacao)
-
-eleicoes_2010_a <- eleicoes_2010 %>% select(-ano, -sequencial_candidato, -nome, -cargo)
-
-modelo_2010 <- lm(votos ~ ., eleicoes_2010_a)
-summary(modelo_2010)
+```{r message=FALSE, warning=FALSE}
+plota_correlograma(eleicoes_2010_num, 2010)
 ```
 
-ue
+Utilizando o mesmo critério que o utilizado para o ano de 2006, identificamos:
 
-# segunda pergunta
+* `total_receita`, `total_despesa` e `recursos_de_pessoas_juridicas` são redundantes entre si.
+* `fornecedores` e `quantidade_despesas` são redundantes.
 
-## primeira subpergunta
+Diferentemente do que aconteceu utilizando os resultados da regressão para identificar as variáveis com pouca significância, os resultados para as variáveis reduntates utilizando o correlograma são os mesmos para ambos os modelos.
 
-para 2006 
+## No caso de haver variáveis pouco explicativas e/ou redudantes, construa um novo modelo sem essas variáveis e o compare ao modelo com todas as variáveis.
 
-```{r}
-# media dos residuos
-mean(modelo_2006$residuals)
-```
+Para o ano de 2006, utilizaremos apenas as variáveis `total_receita`, `media_receita` e `recurso_de_pessoas_fisicas` para prever `votos`. Essas variáveis foram escolhidas entre as mais significativas no modelo para o ano de 2006 utilizando todas as variáveis que não eram redundantes entre si.
 
-parece ser bom pq eh proximo de 0
-
-```{r}
-# grafico de residuos vc ajustamento
-modelo_2006 %>% 
-  ggplot(aes(.fitted, .resid)) +
-  geom_point(alpha = .3) +
-  geom_hline(yintercept = 0, col = "red", linetype = "dashed")
-```
-
-
-```{r}
-mean(modelo_2010$residuals)
-```
-
-proximo de 0 tbm
-
-```{r}
-modelo_2010 %>% 
-  ggplot(aes(.fitted, .resid)) +
-  geom_point(alpha = .3) +
-  geom_hline(yintercept = 0, col = "red", linetype = "dashed")
-```
-
-```{r}
-qqnorm(modelo_2006$residuals)
-qqline(modelo_2006$residuals, col = 2, lwd = 2, lty = 2)
-```
-
-```{r}
-qqnorm(modelo_2010$residuals)
-qqline(modelo_2010$residuals, col = 2, lwd = 2, lty = 2)
-```
-
-## segunda subpergunta
-
-vou comparar toda depois
-
-## terceira subpergunta
-
-r² 2006 = 0.5779
-r² 2010 = 0.5405
-
-# terceira pergunta
-
-mostrar os correlogramas, e cruza as informaçãoes com os resultados da regressao com todas as variaveis
-listar as variaveis significativas, falar de p-valor
-fazer as mesmas coisas pra menos significativas
-
-# quarta pergunta
-
-nao escolher = receita, rec.juridica, despesas, partido, quantidade_doacoes,
-quantidade_doadores, recursos_de_outros_candidatos, recursos_partido_politico,
-recursos_proprios, quantidade_despesas, quantidade_fornecedores, media_despesa, sexo,
-grau, estado_civil
-
-utilizar variaveis receita, rec.juridica, total.despesa, uf, ocupacao
-
-para 2006
-
-```{r}
-modelo_2006_novo <- lm(votos ~ uf + total_receita + media_receita + recursos_de_pessoas_fisicas, eleicoes_2006)
+```{r message=FALSE, warning=FALSE}
+modelo_2006_novo <- lm(votos ~ total_receita + media_receita + recursos_de_pessoas_fisicas, eleicoes_2006)
 summary(modelo_2006_novo)
 ```
+
+O modelo com essas variáveis, explica 42.8% (R² = 0.428) da variação dos dados. Vejamos como se comportam os resíduos.
 
 ```{r}
 mean(modelo_2006_novo$residuals)
 ```
 
-```{r}
+A média aproxima-se de 0, como esperado.
+
+```{r message=FALSE, warning=FALSE}
 modelo_2006_novo %>% 
   ggplot(aes(.fitted, .resid)) +
   geom_point(alpha = .3) +
-  geom_hline(yintercept = 0, col = "red", linetype = "dashed")
+  geom_hline(yintercept = 0, col = "red", linetype = "dashed") +
+  labs(x = "Valores ajustados",
+       y = "Resíduos",
+       title = "Resíduos x Ajustamento")
 ```
 
-```{r}
+A distribuição dos resíduos continua não aleatória.
+
+```{r message=FALSE, warning=FALSE}
 qqnorm(modelo_2006_novo$residuals)
 qqline(modelo_2006_novo$residuals, col = 2, lwd = 2, lty = 2)
 ```
 
-para 2010
+E ainda há alguns dos resíduos que não se aproximam da distribuição normal. 
 
-```{r}
-modelo_2010_novo <- lm(votos ~ uf + total_receita + media_receita + recursos_de_pessoas_fisicas, eleicoes_2010)
-summary(modelo_2006_novo)
+Para o ano de 2010, utilizaremos as variáveis `media_receita`, `recursos_de_pessoas_fisicas`, `recursos_proprios`, `total_despesa`
+
+```{r message=FALSE, warning=FALSE}
+modelo_2010_novo <- lm(votos ~ media_receita + recursos_de_pessoas_fisicas + recursos_proprios + total_despesa, eleicoes_2010)
+summary(modelo_2010_novo)
 ```
 
-```{r}
+Com estas variáveis, nosso modelo explica 42.72% (R² = 0.4272) da variação dos dados. A variável `media_receita`, que era bastante significativa no modelo com todas as variáveis, não ficou tão significativa neste, devido ao aumento do seu p-valor. 
+
+Vejamos os resíduos.
+
+```{r message=FALSE, warning=FALSE}
 mean(modelo_2010_novo$residuals)
 ```
 
-```{r}
+A média continua sendo um valor próximo a 0.
+
+```{r message=FALSE, warning=FALSE}
 modelo_2010_novo %>% 
   ggplot(aes(.fitted, .resid)) +
   geom_point(alpha = .3) +
-  geom_hline(yintercept = 0, col = "red", linetype = "dashed")
+  geom_hline(yintercept = 0, col = "red", linetype = "dashed") +
+  labs(x = "Valores ajustados",
+       y = "Resíduos",
+       title = "Resíduos x Ajustamento")
 ```
 
-```{r}
+Há uma clara tendência nos resíduos.
+
+```{r message=FALSE, warning=FALSE}
 qqnorm(modelo_2010_novo$residuals)
 qqline(modelo_2010_novo$residuals, col = 2, lwd = 2, lty = 2)
 ```
+
+Os resíduos ainda não se aproximam muito de uma distribuição normal.
+
+## Construa agora uma regressão considerando os anos 2006 e 2010 em conjunto. Que diferenças/semelhanças você percebe em relação aos modelos individuais por ano?
+
+Construindo nosso modelo.
+
+```{r message=FALSE, warning=FALSE}
+modelo_tudo <- lm(votos ~ ., eleicoes_selecionadas)
+summary(modelo_tudo)
+```
+
+O modelo considerando ambas as eleições explica aproximadamente 42% (R² = 0.4202) da variação dos dados. Esse valor é menor que os valores de R² dos outros modelos feitos para cada eleição separadamente.
+
+Vejamos os resíduos.
+
+```{r message=FALSE, warning=FALSE}
+mean(modelo_tudo$residuals)
+```
+
+A média dos resíduos aproxima-se de 0, como esperado.
+
+```{r message=FALSE, warning=FALSE}
+modelo_tudo %>% 
+  ggplot(aes(.fitted, .resid)) +
+  geom_point(alpha = .3) +
+  geom_hline(yintercept = 0, col = "red", linetype = "dashed") +
+  labs(x = "Valores ajustados",
+       y = "Resíduos",
+       title = "Resíduos x Ajustamento")
+```
+ 
+ A distruibuição dos resíduos, como os modelos anteriores, continua tendenciosa, não aleatória.
+ 
+```{r message=FALSE, warning=FALSE}
+qqnorm(modelo_tudo$residuals)
+qqline(modelo_tudo$residuals, col = 2, lwd = 2, lty = 2)
+```
+ 
+ E, como os outros, a distruibuição dos resíduos não aproxima-se totalmente de uma distruibuição normal.
