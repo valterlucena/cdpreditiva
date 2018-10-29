@@ -1,0 +1,17 @@
+---
+title: "Predição de Votação de Deputados"
+author: "Valter Lucena"
+date: "29 de outubro de 2018"
+output: 
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_float: yes
+  html_notebook:
+    toc: yes
+    toc_float: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
