@@ -15,3 +15,130 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(here)
+library(caret)
+options(max.print = .Machine$integer.max)
+set.seed(37)
+theme_set(theme_minimal())
+```
+
+# Introdução
+
+Nesta análise iremos construir modelos preditivos de regressão para a predição de votação de candidatos à Câmara Federal de Deputados. Anteriormente, [nesta análise](http://rpubs.com/valterlucena/votacao_regressao), buscamos explicar essas votações através da regressão linear. Utilizaremos, agora, além da regressão linear multivariada, as seguintes técnicas:
+
+* **Regressão Ridge**: todo
+* **Regressão Lasso**: todo
+
+
+```{r message=FALSE, warning=FALSE}
+train <- read_csv(here("data/train.csv"), progress = FALSE)
+test <- read_csv(here("data/test.csv"), progress = FALSE)
+```
+
+# Modelos
+
+```{r}
+train %>% names()
+```
+
+
+```{r}
+train <- train %>% 
+  select(-sequencial_candidato,
+         -nome,
+         -cargo,
+         -uf,
+         -ocupacao)
+
+fitControl <- trainControl(method = "repeatedcv", # boot", "boot632", "cv", "repeatedcv", "LOOCV", "LGOCV"
+                           number = 5,
+                           repeats = 5)
+```
+
+```{r}
+ridge <- train(votos ~ ., 
+               data = train,
+               method = "ridge",
+               trControl = fitControl,
+               preProcess = c('scale', 'center', 'nzv'))
+ridge
+
+# Ridge Regression 
+# 
+# 7476 samples
+#   18 predictor
+# 
+# Pre-processing: scaled (27), centered (27), remove (28) 
+# Resampling: Cross-Validated (5 fold, repeated 5 times) 
+# Summary of sample sizes: 5983, 5981, 5980, 5980, 5980, 5980, ... 
+# Resampling results across tuning parameters:
+# 
+#   lambda  RMSE       Rsquared   MAE     
+#   0e+00   135842.81  0.3223590  18902.05
+#   1e-04    38214.89  0.3895110  16189.01
+#   1e-01    38927.67  0.3813818  16076.19
+# 
+# RMSE was used to select the optimal model using the smallest value.
+# The final value used for the model was lambda = 1e-04.
+
+```
+
+```{r}
+lasso <- train(votos ~ ., 
+               data = train,
+               method = "lasso",
+               trControl = fitControl,
+               preProcess = c('scale', 'center', 'nzv'))
+lasso
+
+# The lasso 
+# 
+# 7476 samples
+#   18 predictor
+# 
+# Pre-processing: scaled (27), centered (27), remove (28) 
+# Resampling: Cross-Validated (5 fold, repeated 5 times) 
+# Summary of sample sizes: 5980, 5980, 5982, 5981, 5981, 5980, ... 
+# Resampling results across tuning parameters:
+# 
+#   fraction  RMSE      Rsquared   MAE     
+#   0.1       41038.11  0.3629154  16648.92
+#   0.5       56437.97  0.3256334  16820.28
+#   0.9       73468.25  0.3153818  17263.66
+# 
+# RMSE was used to select the optimal model using the smallest value.
+# The final value used for the model was fraction = 0.1.
+
+```
+
+```{r}
+knn <- train(votos ~ .,
+             data = train,
+             method = "knn",
+             trControl = fitControl,
+             preProcess = c('scale', 'center', 'nzv'))
+knn
+
+# k-Nearest Neighbors 
+# 
+# 7476 samples
+#   18 predictor
+# 
+# Pre-processing: scaled (27), centered (27), remove (28) 
+# Resampling: Cross-Validated (5 fold, repeated 5 times) 
+# Summary of sample sizes: 5980, 5980, 5983, 5980, 5981, 5981, ... 
+# Resampling results across tuning parameters:
+# 
+#   k  RMSE      Rsquared   MAE     
+#   5  34731.23  0.4773493  12915.87
+#   7  34679.56  0.4785218  12906.56
+#   9  34479.83  0.4852873  12867.67
+# 
+# RMSE was used to select the optimal model using the smallest value.
+# The final value used for the model was k = 9.
+
+```
+
