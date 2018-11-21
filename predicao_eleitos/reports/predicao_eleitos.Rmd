@@ -21,7 +21,7 @@ theme_set(theme_minimal())
 importando os dados
 
 ```{r}
-train <- read.csv(here("data/train.csv")) = 
+train <- read.csv(here("data/train.csv")) 
 ```
 
 
@@ -41,19 +41,22 @@ nao_eleitos <- train %>%
 frame = rbind(eleitos, nao_eleitos)
 
 frame %>% 
+  mutate(proporcao = n / (train %>% nrow())) %>% 
   ggplot(aes(x = situacao,
              y = n,
              colour = situacao,
-             label = n)) +
+             label = paste(n,"(",round(proporcao * 100, 2),"%)"))) +
   geom_point(size = 2) +
   geom_segment(aes(x = situacao,
                    xend = situacao,
                    y = 0,
                    yend = n)) +
-  geom_text(nudge_x = 0.1) +
+  geom_text(hjust = 1,
+            vjust = -1) +
   guides(colour = FALSE) +
   labs(x = "Situação",
        y = "Quantidade de deputados") +
+  theme() +
   coord_flip()
 ```
 
@@ -61,7 +64,7 @@ pelo gráfico:
   há desbalanceamento
   
 ```{r}
-6596 / 1025
+
 ```
 proporcao:
   existem 6.4 vezes mais deputados nao eleitos que eleitos
