@@ -1,0 +1,71 @@
+---
+title: "Predição de Deputados Eleitos"
+author: "Valter Lucena"
+date: "20 de novembro de 2018"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r message=FALSE, warning=FALSE}
+library(tidyverse)
+library(here)
+theme_set(theme_minimal())
+```
+
+
+# Introdução
+
+importando os dados
+
+```{r}
+train <- read.csv(here("data/train.csv")) = 
+```
+
+
+# Perguntas
+
+## Há desbalanceamento das classes (isto é, uma classe tem muito mais instâncias que outra)? Em que proporção? Quais efeitos colaterais o desbalanceamento de classes pode causar no classificador? Como você poderia tratar isso?
+
+```{r}
+eleitos <- train %>% 
+  filter(situacao == "eleito") %>% 
+  count(situacao)
+
+nao_eleitos <- train %>% 
+  filter(situacao == "nao_eleito") %>% 
+  count(situacao)
+
+frame = rbind(eleitos, nao_eleitos)
+
+frame %>% 
+  ggplot(aes(x = situacao,
+             y = n,
+             colour = situacao,
+             label = n)) +
+  geom_point(size = 2) +
+  geom_segment(aes(x = situacao,
+                   xend = situacao,
+                   y = 0,
+                   yend = n)) +
+  geom_text(nudge_x = 0.1) +
+  guides(colour = FALSE) +
+  labs(x = "Situação",
+       y = "Quantidade de deputados") +
+  coord_flip()
+```
+
+pelo gráfico:
+  há desbalanceamento
+  
+```{r}
+6596 / 1025
+```
+proporcao:
+  existem 6.4 vezes mais deputados nao eleitos que eleitos
+efeitos no classificador:
+  problemas com classe majoritária. vai tender mais para os nao_eleitos pela maior quantidade
+como tratar: 
+  talvez criando algumas amostras mais balanceadas
