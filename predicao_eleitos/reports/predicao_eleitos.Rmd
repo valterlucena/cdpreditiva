@@ -2,7 +2,14 @@
 title: "Predição de Deputados Eleitos"
 author: "Valter Lucena"
 date: "20 de novembro de 2018"
-output: html_document
+output: 
+  html_notebook:
+    toc: yes
+    toc_float: yes
+  html_document:
+    df_print: paged
+    toc: yes
+    toc_float: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -12,11 +19,12 @@ knitr::opts_chunk$set(echo = TRUE)
 ```{r message=FALSE, warning=FALSE}
 library(tidyverse)
 library(here)
+library(caret)
 theme_set(theme_minimal())
 ```
 
 
-# Introdução
+### Introdução
 
 importando os dados
 
@@ -25,9 +33,9 @@ train <- read.csv(here("data/train.csv"))
 ```
 
 
-# Perguntas
+### Perguntas
 
-## Há desbalanceamento das classes (isto é, uma classe tem muito mais instâncias que outra)? Em que proporção? Quais efeitos colaterais o desbalanceamento de classes pode causar no classificador? Como você poderia tratar isso?
+#### Há desbalanceamento das classes (isto é, uma classe tem muito mais instâncias que outra)? Em que proporção? Quais efeitos colaterais o desbalanceamento de classes pode causar no classificador? Como você poderia tratar isso?
 
 ```{r}
 eleitos <- train %>% 
@@ -60,15 +68,23 @@ frame %>%
   coord_flip()
 ```
 
-pelo gráfico:
-  há desbalanceamento
-  
-```{r}
+Como podemos observar no gráfico, existe uma grande diferença entre a quantidade de deputados eleitos e não eleitos na base de dados de treino, ou seja, há sim desbalanceamento entre as classes. Nestes dados, 86.54% são da classe `nao_eleito` e 13.46% são da classe `eleito`. Um efeito desse desbalanceamento é que as predições realizadas utilizando um modelo que foi treinado com esses dados podem ser enviesadas para a classe majoritária. A solução mais comum para este tipo de problema é realizar uma reamostragem nos dados utilizando *undersampling* ou *oversampling*.
 
+* *Undersampling*: são retiradas aleatoriamente amostras da classe majoritária de forma a igualar a quantidade de observações desta com a classe minoritária. Uma desvantagem dessa abordagem é a perda de informação.
+* *Oversampling*: as observações da classe minoritária são aleatoriamente duplicadas ou são geradas novas observações para se igualar a quantidade de observações da classe majoritária. Nesta abordagem não há risco de perda de informação, mas aumenta-se o risco de que ocorra um *overfitting*, uma vez que as mesmas amostras podem ser retiradas. Com isto, a capacidade de generalização do modelo seria prejudicada. 
+
+#### Treine: um modelo de regressão logística, uma árvore de decisão e um modelo de adaboost. Tune esses modelos usando validação cruzada e controle overfitting se necessário, considerando as particularidades de cada modelo. 
+
+Vamos, inicialmente, retirar dos dados as variáveis de identificação de um deputado, e as categóricas de apenas um nível.
+
+```{r}
+train %>% names()
+train <- train %>% 
+  select(-sequencial_candidato,
+         -nome,
+         -uf,
+         -cargo)
 ```
-proporcao:
-  existem 6.4 vezes mais deputados nao eleitos que eleitos
-efeitos no classificador:
-  problemas com classe majoritária. vai tender mais para os nao_eleitos pela maior quantidade
-como tratar: 
-  talvez criando algumas amostras mais balanceadas
+
+
+Para obtermos uma estimativa honesta do desempenho de cada modelo, utilizaremos ambas as abordagens para desbalanceamento de forma independente a cada fold da validação cruzada.
