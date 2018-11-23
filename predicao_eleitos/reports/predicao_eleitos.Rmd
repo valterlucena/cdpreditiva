@@ -20,6 +20,7 @@ knitr::opts_chunk$set(echo = TRUE)
 library(tidyverse)
 library(here)
 library(caret)
+library(ROSE)
 theme_set(theme_minimal())
 ```
 
@@ -80,11 +81,25 @@ Vamos, inicialmente, retirar dos dados as variáveis de identificação de um de
 ```{r}
 train %>% names()
 train <- train %>% 
-  select(-sequencial_candidato,
-         -nome,
-         -uf,
-         -cargo)
+  select(-nome, -uf, -estado_civil, 
+                          -partido, -ocupacao,-ano, 
+                          -cargo,-grau,-sexo, 
+                          -sequencial_candidato)
 ```
 
-
 Para obtermos uma estimativa honesta do desempenho de cada modelo, utilizaremos ambas as abordagens para desbalanceamento de forma independente a cada fold da validação cruzada.
+
+```{r}
+reglogControl <- trainControl(method = "boot",
+                              verboseIter = TRUE,
+                              classProbs = TRUE)
+
+regLog <- train(situacao ~ .,
+                train,
+                method = "regLogistic",
+                trControl = reglogControl,
+                preProcess = c('scale', 'center', 'nzv'))
+saveRDS(regLog, file = "regLod.rds")
+
+```
+
