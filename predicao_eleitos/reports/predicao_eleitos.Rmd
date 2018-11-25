@@ -89,7 +89,9 @@ train <- train %>%
          -uf,
          -ocupacao,
          -partido,
-         -estado_civil)
+         -estado_civil,
+         -grau)
+train %>% names()
 ```
 
 
