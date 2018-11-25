@@ -79,18 +79,27 @@ Como podemos observar no gráfico, existe uma grande diferença entre a quantida
 Vamos, inicialmente, retirar dos dados as variáveis de identificação de um deputado, e as categóricas de apenas um nível.
 
 ```{r}
-train %>% names()
 train <- train %>% 
-  select(-nome, -uf, -estado_civil, 
-                          -partido, -ocupacao,-ano, 
-                          -cargo,-grau,-sexo, 
-                          -sequencial_candidato)
+  mutate(reeleito = ifelse(ocupacao == "DEPUTADO", 
+                           as.factor(TRUE), 
+                           as.factor(FALSE))) %>% 
+  select(-sequencial_candidato,
+         -nome,
+         -cargo,
+         -uf,
+         -ocupacao,
+         -partido,
+         -estado_civil)
 ```
+
 
 Para obtermos uma estimativa honesta do desempenho de cada modelo, utilizaremos ambas as abordagens para desbalanceamento de forma independente a cada fold da validação cruzada.
 
 ```{r}
-reglogControl <- trainControl(method = "boot",
+reglogControl <- trainControl(method = "repeatedcv",
+                              sampling = "rose",
+                              number = 5,
+                              repeats = 5,
                               verboseIter = TRUE,
                               classProbs = TRUE)
 
@@ -99,7 +108,8 @@ regLog <- train(situacao ~ .,
                 method = "regLogistic",
                 trControl = reglogControl,
                 preProcess = c('scale', 'center', 'nzv'))
-saveRDS(regLog, file = "regLod.rds")
 
+saveRDS(regLog, file = "regLog.rds")
+plot(regLog)
 ```
 
