@@ -98,20 +98,67 @@ train %>% names()
 Para obtermos uma estimativa honesta do desempenho de cada modelo, utilizaremos ambas as abordagens para desbalanceamento de forma independente a cada fold da validação cruzada.
 
 ```{r}
-reglogControl <- trainControl(method = "repeatedcv",
-                              sampling = "rose",
-                              number = 5,
-                              repeats = 5,
-                              verboseIter = TRUE,
-                              classProbs = TRUE)
+# reglogControl <- trainControl(method = "repeatedcv",
+#                               sampling = "rose",
+#                               number = 5,
+#                               repeats = 5,
+#                               verboseIter = TRUE,
+#                               classProbs = TRUE)
 
-regLog <- train(situacao ~ .,
-                train,
-                method = "regLogistic",
-                trControl = reglogControl,
-                preProcess = c('scale', 'center', 'nzv'))
-
-saveRDS(regLog, file = "regLog.rds")
+# regLog <- train(situacao ~ .,
+#                 train,
+#                 method = "regLogistic",
+#                 trControl = reglogControl,
+#                 preProcess = c('scale', 'center', 'nzv'))
+# 
+# saveRDS(regLog, file = "regLog.rds")
+readRDS(regLog, file = "regLog.rds")
 plot(regLog)
+```
+
+
+```{r}
+# knnGrid <- expand.grid(k = seq(1, 25, length=25))
+# 
+# knnControl <- trainControl(method = "repeatedcv",
+#                            sampling = "rose",
+#                            number = 5,
+#                            repeats = 5,
+#                            verboseIter = TRUE,
+#                            classProbs = TRUE)
+# knn <- train(situacao ~ .,
+#              data = train,
+#              method = "knn",
+#              trControl = knnControl,
+#              preProcess = c('scale', 'center', 'nzv'),
+#              tuneGrid = knnGrid)
+# 
+# saveRDS(knn, file = 'knnModel.rds')
+knn <- readRDS(file = 'knnModel.rds')
+plot(knn)
+```
+
+```{r}
+# arvore decisao
+# dtGrid <- expand.grid(cp=seq(0, 0.05, length = 50))
+# 
+# dtControl <- trainControl(method = "repeatedcv",
+#                           sampling = "rose",
+#                           number = 5,
+#                           repeats = 5,
+#                           verboseIter = TRUE,
+#                           classProbs = TRUE)
+# 
+# dtree <- train(situacao ~ .,
+#                data = train,
+#                method = "rpart",
+#                trControl = dtControl,
+#                preProcess = c('scale', 'center', 'nzv'),
+#                tuneGrid = dtGrid)
+
+#saveRDS(dtree, 'dtree.rds')
+dtree <- readRDS(file = "dtree.rds")
+library(rpart.plot)
+rpart.plot(dtree$finalModel)
 ```
 
