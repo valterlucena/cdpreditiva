@@ -80,9 +80,6 @@ Vamos, inicialmente, retirar dos dados as variáveis de identificação de um de
 
 ```{r}
 train <- train %>% 
-  mutate(reeleito = ifelse(ocupacao == "DEPUTADO", 
-                           as.factor(TRUE), 
-                           as.factor(FALSE))) %>% 
   select(-sequencial_candidato,
          -nome,
          -cargo,
@@ -90,7 +87,8 @@ train <- train %>%
          -ocupacao,
          -partido,
          -estado_civil,
-         -grau)
+         -grau,
+         -ocupacao)
 train %>% names()
 ```
 
@@ -99,20 +97,20 @@ Para obtermos uma estimativa honesta do desempenho de cada modelo, utilizaremos 
 
 ```{r}
 # reglogControl <- trainControl(method = "repeatedcv",
-#                               sampling = "rose",
+#                               sampling = "smote",
 #                               number = 5,
 #                               repeats = 5,
 #                               verboseIter = TRUE,
 #                               classProbs = TRUE)
-
+# 
 # regLog <- train(situacao ~ .,
 #                 train,
 #                 method = "regLogistic",
 #                 trControl = reglogControl,
 #                 preProcess = c('scale', 'center', 'nzv'))
-# 
+
 # saveRDS(regLog, file = "regLog.rds")
-readRDS(regLog, file = "regLog.rds")
+regLog <- readRDS(regLog, file = "regLog.rds")
 plot(regLog)
 ```
 
@@ -121,7 +119,7 @@ plot(regLog)
 # knnGrid <- expand.grid(k = seq(1, 25, length=25))
 # 
 # knnControl <- trainControl(method = "repeatedcv",
-#                            sampling = "rose",
+#                            sampling = "smote",
 #                            number = 5,
 #                            repeats = 5,
 #                            verboseIter = TRUE,
@@ -140,23 +138,21 @@ plot(knn)
 
 ```{r}
 # arvore decisao
-# dtGrid <- expand.grid(cp=seq(0, 0.05, length = 50))
-# 
-# dtControl <- trainControl(method = "repeatedcv",
-#                           sampling = "rose",
-#                           number = 5,
-#                           repeats = 5,
-#                           verboseIter = TRUE,
-#                           classProbs = TRUE)
-# 
-# dtree <- train(situacao ~ .,
-#                data = train,
-#                method = "rpart",
-#                trControl = dtControl,
-#                preProcess = c('scale', 'center', 'nzv'),
-#                tuneGrid = dtGrid)
+dtControl <- trainControl(method = "repeatedcv",
+                          sampling = "rose",
+                          number = 5,
+                          repeats = 5,
+                          verboseIter = TRUE,
+                          classProbs = TRUE)
 
-#saveRDS(dtree, 'dtree.rds')
+dtree <- train(situacao ~ .,
+               data = train,
+               method = "rpart",
+               trControl = dtControl,
+               preProcess = c('scale', 'center', 'nzv'),
+               tuneLength = 10)
+
+saveRDS(dtree, 'dtree.rds')
 dtree <- readRDS(file = "dtree.rds")
 library(rpart.plot)
 rpart.plot(dtree$finalModel)
