@@ -138,23 +138,49 @@ plot(knn)
 
 ```{r}
 # arvore decisao
-dtControl <- trainControl(method = "repeatedcv",
-                          sampling = "rose",
-                          number = 5,
-                          repeats = 5,
-                          verboseIter = TRUE,
-                          classProbs = TRUE)
-
-dtree <- train(situacao ~ .,
-               data = train,
-               method = "rpart",
-               trControl = dtControl,
-               preProcess = c('scale', 'center', 'nzv'),
-               tuneLength = 10)
-
-saveRDS(dtree, 'dtree.rds')
+# dtGrid <- expand.grid(.cp = seq(from=0, to=0.1, length = 25))
+# 
+# dtControl <- trainControl(method = "repeatedcv",
+#                           sampling = "smote",
+#                           number = 5,
+#                           repeats = 5,
+#                           verboseIter = TRUE,
+#                           classProbs = TRUE)
+# 
+# dtree <- train(situacao ~ .,
+#                data = train,
+#                method = "rpart",
+#                trControl = dtControl,
+#                preProcess = c('scale', 'center', 'nzv'),
+#                tuneGrid = dtGrid)
+# 
+# saveRDS(dtree, 'dtree.rds')
 dtree <- readRDS(file = "dtree.rds")
 library(rpart.plot)
 rpart.plot(dtree$finalModel)
+```
+
+```{r}
+# adaboost
+# adaGrid <- expand.grid(nIter = seq(1, 25, length = 25),
+#                        method = c("Adaboost.M1", "Real adaboost"))
+# 
+# adaControl <- trainControl(method = "repeatedcv",
+#                            sampling = "smote",
+#                            number = 5,
+#                            repeats = 5,
+#                            verboseIter = TRUE,
+#                            classProbs = TRUE)
+# 
+# adaboost <- train(situacao ~ .,
+#                   train,
+#                   method = "adaboost",
+#                   trControl = adaControl,
+#                   preProcess = c("scale", "center", "nzv"),
+#                   tuneGrid = adaGrid)
+# 
+# saveRDS(adaboost, file = "adaboost.rds")
+adaboost <- readRDS(adaboost, file = "adaboost.rds")
+plot(adaboost)
 ```
 
