@@ -110,7 +110,7 @@ Para obtermos uma estimativa honesta do desempenho de cada modelo, utilizaremos 
 #                 preProcess = c('scale', 'center', 'nzv'))
 
 # saveRDS(regLog, file = "regLog.rds")
-regLog <- readRDS(regLog, file = "regLog.rds")
+regLog <- readRDS(file = "regLog.rds")
 plot(regLog)
 ```
 
@@ -180,7 +180,153 @@ rpart.plot(dtree$finalModel)
 #                   tuneGrid = adaGrid)
 # 
 # saveRDS(adaboost, file = "adaboost.rds")
-adaboost <- readRDS(adaboost, file = "adaboost.rds")
+adaboost <- readRDS(file = "adaboost.rds")
 plot(adaboost)
+```
+
+#### Reporte precision, recall e f-measure no treino e validação. Há uma grande diferença de desempenho no treino/validação? Como você avalia os resultados? Justifique sua resposta. 
+
+Todas essas medidas são calculadas em termos de Verdadeiros Positivos (TP), Verdadeiros Negativos (TN), Falsos Positivos (FP) e Falsos Negativos (FN), ou seja, na quantidade de observações onde um candidato previsto como eleito ou não eleito realmente se elegeu ou não se elegeu. Cada medida representa o seguinte:
+
+* Precision: razão entre observações previstas como positivas corretamente (TP) e o total de observações previstas como positivas (TP + FP)
+
+```{r}
+precision <- function(TP, FP) {
+  result <- TP / (TP + FP)
+  return(result)
+}
+```
+
+* Recall: proporção de observações previstas como positivas corretamente (TP) entre todas as observações da classe atual (TP + FN)
+
+```{r}
+recall <- function(TP,FN) {
+  result <- TP / (TP + FN)
+  return(result)
+}
+```
+
+* F-measure: média ponderada entre *precision* e *recall*. Leva em consideração tanto os falso positivos como os falsos negativos
+
+```{r}
+fmeasure <- function(precision, recall) {
+  result <- 2 * (precision * recall) / (precision + recall)
+}
+```
+
+Pra o modelo de Regressão Logística, temos:
+
+```{r}
+matriz.regLog <- confusionMatrix(regLog)
+regLog.precision <- precision(matriz.regLog$table[1], matriz.regLog$table[3])
+regLog.recall <- recall(matriz.regLog$table[1], matriz.regLog$table[2])
+regLog.fmeasure <- fmeasure(regLog.precision, regLog.recall)
+
+regLog.precision
+regLog.recall
+regLog.fmeasure
+```
+
+Pra o modelo KNN, temos:
+
+```{r}
+matriz.knn <- confusionMatrix(knn)
+knn.precision <- precision(matriz.knn$table[1], matriz.knn$table[3])
+knn.recall <- recall(matriz.knn$table[1], matriz.knn$table[2])
+knn.fmeasure <- fmeasure(knn.precision, knn.recall)
+
+knn.precision
+knn.recall
+knn.fmeasure
+```
+
+Pra a árvore de decisão, temos:
+
+```{r}
+matriz.dtree <- confusionMatrix(dtree)
+dtree.precision <- precision(matriz.dtree$table[1], matriz.dtree$table[3])
+dtree.recall <- recall(matriz.dtree$table[1], matriz.dtree$table[2])
+dtree.fmeasure <- fmeasure(dtree.precision, dtree.recall)
+
+dtree.precision
+dtree.recall
+dtree.fmeasure
+```
+
+Para o modelo de Adaboost, temos:
+
+```{r}
+matriz.adaboost <- confusionMatrix(adaboost)
+adaboost.precision <- precision(matriz.adaboost$table[1], matriz.adaboost$table[3])
+adaboost.recall <- recall(matriz.adaboost$table[1], matriz.adaboost$table[2])
+adaboost.fmeasure <- fmeasure(adaboost.precision, adaboost.recall)
+
+adaboost.precision
+adaboost.recall
+adaboost.fmeasure
+```
+
+#### Interprete as saídas dos modelos. Quais atributos parecem ser mais importantes de acordo com cada modelo?
+
+Logística
+
+```{r}
+summary(regLog)
+```
+
+KNN
+
+```{r}
+varImp(knn)
+```
+
+Arvore de decisao
+
+```{r}
+ggplot(varImp(dtree))
+```
+
+Adaboost
+
+```{r}
+ggplot(varImp(adaboost))
+```
+
+#### Envie seus melhores modelos à competição do Kaggle. Faça pelo menos uma submissão. Sugestões para melhorar o modelo:
+
+```{r}
+best.model.grid <- expand.grid(adaboost$bestTune)
+best.model <- train(situacao ~ .,
+                    train,
+                    method = "adaboost",
+                    trControl = trainControl(verboseIter = TRUE),
+                    tuneGrid = best.model.grid)
+best.model
+```
+
+
+Primeiramente vamos aplicar todas as modificações do modelo de treino no modelo de teste.
+
+```{r}
+test <- read.csv(here("data/test.csv"))
+submission <- test %>% select(sequencial_candidato)
+test <- test %>% 
+  select(-sequencial_candidato,
+         -nome,
+         -cargo,
+         -uf,
+         -ocupacao,
+         -partido,
+         -estado_civil,
+         -grau,
+         -ocupacao)
+predictions <- predict(best.model, test)
+submission$situacao <- predictions
+submission <- submission %>% 
+  select(Id = sequencial_candidato,
+         Predicted = situacao)
+write.csv(x = submission,
+          file = "sample_submission.csv",
+          row.names = FALSE)
 ```
 
