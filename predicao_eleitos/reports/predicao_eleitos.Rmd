@@ -3,11 +3,11 @@ title: "Predição de Deputados Eleitos"
 author: "Valter Lucena"
 date: "20 de novembro de 2018"
 output: 
-  html_notebook:
-    toc: yes
-    toc_float: yes
   html_document:
     df_print: paged
+    toc: yes
+    toc_float: yes
+  html_notebook:
     toc: yes
     toc_float: yes
 ---
@@ -24,19 +24,18 @@ library(ROSE)
 theme_set(theme_minimal())
 ```
 
+# Introdução
 
-### Introdução
-
-importando os dados
+Nesta análise iremos construir modelos de classificação para a predição da eleição dos candidatos à Câmara Federal de Deputados. Anteriormente, [nesta análise](https://rpubs.com/valterlucena/pred-votos), buscamos predizer o total de votos recebidos utilizando técnicas de regressão.
 
 ```{r}
 train <- read.csv(here("data/train.csv")) 
+train %>% names()
 ```
 
+# Perguntas
 
-### Perguntas
-
-#### Há desbalanceamento das classes (isto é, uma classe tem muito mais instâncias que outra)? Em que proporção? Quais efeitos colaterais o desbalanceamento de classes pode causar no classificador? Como você poderia tratar isso?
+## Há desbalanceamento das classes (isto é, uma classe tem muito mais instâncias que outra)? Em que proporção? Quais efeitos colaterais o desbalanceamento de classes pode causar no classificador? Como você poderia tratar isso?
 
 ```{r}
 eleitos <- train %>% 
@@ -74,7 +73,7 @@ Como podemos observar no gráfico, existe uma grande diferença entre a quantida
 * *Undersampling*: são retiradas aleatoriamente amostras da classe majoritária de forma a igualar a quantidade de observações desta com a classe minoritária. Uma desvantagem dessa abordagem é a perda de informação.
 * *Oversampling*: as observações da classe minoritária são aleatoriamente duplicadas ou são geradas novas observações para se igualar a quantidade de observações da classe majoritária. Nesta abordagem não há risco de perda de informação, mas aumenta-se o risco de que ocorra um *overfitting*, uma vez que as mesmas amostras podem ser retiradas. Com isto, a capacidade de generalização do modelo seria prejudicada. 
 
-#### Treine: um modelo de regressão logística, uma árvore de decisão e um modelo de adaboost. Tune esses modelos usando validação cruzada e controle overfitting se necessário, considerando as particularidades de cada modelo. 
+## Treine: um modelo de regressão logística, uma árvore de decisão e um modelo de adaboost. Tune esses modelos usando validação cruzada e controle overfitting se necessário, considerando as particularidades de cada modelo. 
 
 Vamos, inicialmente, retirar dos dados as variáveis de identificação de um deputado, e as categóricas de apenas um nível.
 
@@ -89,11 +88,13 @@ train <- train %>%
          -estado_civil,
          -grau,
          -ocupacao)
-train %>% names()
 ```
 
-
 Para obtermos uma estimativa honesta do desempenho de cada modelo, utilizaremos ambas as abordagens para desbalanceamento de forma independente a cada fold da validação cruzada.
+
+*Observação*: Os códigos para o treinamento dos modelos estão comentados para que não sejam reexecutados durante a geração do html deste relatório. 
+
+### Modelo de Regressão Logística
 
 ```{r}
 # reglogControl <- trainControl(method = "repeatedcv",
@@ -111,9 +112,14 @@ Para obtermos uma estimativa honesta do desempenho de cada modelo, utilizaremos 
 
 # saveRDS(regLog, file = "regLog.rds")
 regLog <- readRDS(file = "regLog.rds")
+regLog
+```
+
+```{r}
 plot(regLog)
 ```
 
+### Modelo KNN (K-Nearest Neighbours)
 
 ```{r}
 # knnGrid <- expand.grid(k = seq(1, 25, length=25))
@@ -133,17 +139,21 @@ plot(regLog)
 # 
 # saveRDS(knn, file = 'knnModel.rds')
 knn <- readRDS(file = 'knnModel.rds')
-plot(knn)
+knn
 ```
 
 ```{r}
+plot(knn)
+```
+
+### Árvore de Decisão
+
+```{r}
 # arvore decisao
-# dtGrid <- expand.grid(.cp = seq(from=0, to=0.1, length = 25))
-# 
 # dtControl <- trainControl(method = "repeatedcv",
-#                           sampling = "smote",
 #                           number = 5,
 #                           repeats = 5,
+#                           sampling = "smote",
 #                           verboseIter = TRUE,
 #                           classProbs = TRUE)
 # 
@@ -152,13 +162,19 @@ plot(knn)
 #                method = "rpart",
 #                trControl = dtControl,
 #                preProcess = c('scale', 'center', 'nzv'),
-#                tuneGrid = dtGrid)
+#                cp = 0.001)
 # 
 # saveRDS(dtree, 'dtree.rds')
 dtree <- readRDS(file = "dtree.rds")
+dtree
+```
+
+```{r}
 library(rpart.plot)
 rpart.plot(dtree$finalModel)
 ```
+
+### Adaboost
 
 ```{r}
 # adaboost
@@ -181,10 +197,14 @@ rpart.plot(dtree$finalModel)
 # 
 # saveRDS(adaboost, file = "adaboost.rds")
 adaboost <- readRDS(file = "adaboost.rds")
+adaboost
+```
+
+```{r}
 plot(adaboost)
 ```
 
-#### Reporte precision, recall e f-measure no treino e validação. Há uma grande diferença de desempenho no treino/validação? Como você avalia os resultados? Justifique sua resposta. 
+## Reporte precision, recall e f-measure no treino e validação. Há uma grande diferença de desempenho no treino/validação? Como você avalia os resultados? Justifique sua resposta. 
 
 Todas essas medidas são calculadas em termos de Verdadeiros Positivos (TP), Verdadeiros Negativos (TN), Falsos Positivos (FP) e Falsos Negativos (FN), ou seja, na quantidade de observações onde um candidato previsto como eleito ou não eleito realmente se elegeu ou não se elegeu. Cada medida representa o seguinte:
 
@@ -266,44 +286,27 @@ adaboost.recall
 adaboost.fmeasure
 ```
 
-#### Interprete as saídas dos modelos. Quais atributos parecem ser mais importantes de acordo com cada modelo?
-
-Logística
-
-```{r}
-summary(regLog)
-```
-
-KNN
-
-```{r}
-varImp(knn)
-```
-
-Arvore de decisao
+## Interprete as saídas dos modelos. Quais atributos parecem ser mais importantes de acordo com cada modelo?
 
 ```{r}
 ggplot(varImp(dtree))
 ```
 
-Adaboost
+Para a árvore de decisão, as variáveis mais importantes foram `total_receita`, `total_despesa`, `recursos_de_pessoas_juridicas`, `quantidade_despesas` e `quantidade_fornecedores`. 
+
+## Envie seus melhores modelos à competição do Kaggle. Faça pelo menos uma submissão. Sugestões para melhorar o modelo:
 
 ```{r}
-ggplot(varImp(adaboost))
-```
-
-#### Envie seus melhores modelos à competição do Kaggle. Faça pelo menos uma submissão. Sugestões para melhorar o modelo:
-
-```{r}
-best.model.grid <- expand.grid(adaboost$bestTune)
-best.model <- train(situacao ~ .,
-                    train,
-                    method = "adaboost",
-                    trControl = trainControl(verboseIter = TRUE),
-                    tuneGrid = best.model.grid)
+# best.model.grid <- expand.grid(adaboost$bestTune)
+# best.model <- train(situacao ~ .,
+#                     train,
+#                     method = "adaboost",
+#                     trControl = trainControl(verboseIter = TRUE),
+#                     tuneGrid = best.model.grid)
+# saveRDS(best.model, file="bestModel.rds")
+best.model <- readRDS(file="bestModel.rds")
 best.model
 ```
-
 
 Primeiramente vamos aplicar todas as modificações do modelo de treino no modelo de teste.
 
